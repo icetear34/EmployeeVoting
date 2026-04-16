@@ -7,421 +7,155 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
-    --ink: #111111;
-    --ink-2: #444444;
-    --ink-3: #888888;
-    --paper: #fafaf8;
-    --paper-2: #f2f2ee;
-    --border: #e0e0d8;
-    --accent: #1a5c3a;
-    --accent-light: #e8f4ee;
-    --accent-hover: #144a2f;
-    --danger: #c0392b;
-    --warn: #e67e22;
-    --radius: 10px;
-    --shadow: 0 2px 12px rgba(0,0,0,0.07);
-    --shadow-md: 0 6px 32px rgba(0,0,0,0.12);
+    --ink:#111111;--ink-2:#444444;--ink-3:#888888;
+    --paper:#fafaf8;--paper-2:#f2f2ee;--border:#e0e0d8;
+    --accent:#1a5c3a;--accent-light:#e8f4ee;--accent-hover:#144a2f;
+    --danger:#c0392b;--warn:#e67e22;
+    --radius:10px;--shadow:0 2px 12px rgba(0,0,0,0.07);--shadow-md:0 6px 32px rgba(0,0,0,0.12);
   }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Noto Sans TC',sans-serif;background:var(--paper);color:var(--ink);min-height:100vh;font-size:15px;line-height:1.6;}
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  .screen{display:none;min-height:100vh;animation:fadeIn 0.3s ease;}
+  .screen.active{display:flex;flex-direction:column;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 
-  body {
-    font-family: 'Noto Sans TC', sans-serif;
-    background: var(--paper);
-    color: var(--ink);
-    min-height: 100vh;
-    font-size: 15px;
-    line-height: 1.6;
-  }
+  .topbar{position:sticky;top:0;z-index:100;background:rgba(250,250,248,0.93);backdrop-filter:blur(8px);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;}
+  .topbar-logo{font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:var(--ink-3);letter-spacing:.08em;text-transform:uppercase;}
+  .topbar-title{font-size:15px;font-weight:500;}
+  .topbar-action{font-size:13px;color:var(--ink-3);background:none;border:none;cursor:pointer;padding:4px 10px;border-radius:6px;transition:background .15s;}
+  .topbar-action:hover{background:var(--paper-2);}
 
-  /* ─── SCREEN SYSTEM ─── */
-  .screen { display: none; min-height: 100vh; animation: fadeIn 0.3s ease; }
-  .screen.active { display: flex; flex-direction: column; }
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  .center-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:40px 20px;}
+  .card{background:white;border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow-md);padding:40px;width:100%;max-width:420px;}
+  .card-title{font-size:22px;font-weight:700;margin-bottom:4px;}
+  .card-subtitle{font-size:13px;color:var(--ink-3);margin-bottom:28px;}
 
-  /* ─── TOPBAR ─── */
-  .topbar {
-    position: sticky; top: 0; z-index: 100;
-    background: rgba(250,250,248,0.92);
-    backdrop-filter: blur(8px);
-    border-bottom: 1px solid var(--border);
-    padding: 14px 24px;
-    display: flex; align-items: center; justify-content: space-between;
-  }
-  .topbar-logo {
-    font-family: 'DM Mono', monospace;
-    font-size: 13px; font-weight: 500;
-    color: var(--ink-3);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-  .topbar-title { font-size: 15px; font-weight: 500; }
-  .topbar-action {
-    font-size: 13px; color: var(--ink-3);
-    background: none; border: none; cursor: pointer;
-    padding: 4px 10px; border-radius: 6px;
-    transition: background 0.15s;
-  }
-  .topbar-action:hover { background: var(--paper-2); }
+  .form-group{margin-bottom:18px;}
+  label{display:block;font-size:13px;font-weight:500;color:var(--ink-2);margin-bottom:6px;}
+  input[type="text"],input[type="password"],textarea{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--radius);font-family:inherit;font-size:15px;background:var(--paper);color:var(--ink);outline:none;transition:border-color .15s,box-shadow .15s;}
+  input:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(26,92,58,.12);background:white;}
+  textarea{resize:vertical;font-size:13px;}
 
-  /* ─── CENTERED CARD ─── */
-  .center-wrap {
-    flex: 1; display: flex; align-items: center; justify-content: center;
-    padding: 40px 20px;
-  }
-  .card {
-    background: white;
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    box-shadow: var(--shadow-md);
-    padding: 40px;
-    width: 100%; max-width: 420px;
-  }
-  .card-title {
-    font-size: 22px; font-weight: 700;
-    margin-bottom: 4px; color: var(--ink);
-  }
-  .card-subtitle {
-    font-size: 13px; color: var(--ink-3);
-    margin-bottom: 28px;
-  }
+  .captcha-row{display:flex;gap:10px;align-items:stretch;}
+  .captcha-row input{flex:1;}
+  .captcha-box{background:var(--paper-2);border:1.5px solid var(--border);border-radius:var(--radius);padding:8px 16px;font-family:'DM Mono',monospace;font-size:20px;font-weight:500;letter-spacing:.2em;color:var(--ink);cursor:pointer;user-select:none;display:flex;align-items:center;transition:background .15s;}
+  .captcha-box:hover{background:#e8e8e2;}
 
-  /* ─── FORM ─── */
-  .form-group { margin-bottom: 18px; }
-  label {
-    display: block; font-size: 13px; font-weight: 500;
-    color: var(--ink-2); margin-bottom: 6px;
-  }
-  input[type="text"], input[type="password"] {
-    width: 100%; padding: 10px 14px;
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius);
-    font-family: inherit; font-size: 15px;
-    background: var(--paper); color: var(--ink);
-    outline: none; transition: border-color 0.15s, box-shadow 0.15s;
-  }
-  input:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(26,92,58,0.12);
-    background: white;
-  }
+  .btn{display:block;width:100%;padding:13px 20px;background:var(--accent);color:white;border:none;border-radius:var(--radius);font-family:inherit;font-size:15px;font-weight:500;cursor:pointer;transition:background .15s,transform .1s;text-align:center;}
+  .btn:hover{background:var(--accent-hover);}
+  .btn:active{transform:scale(.98);}
+  .btn:disabled{background:var(--border);color:var(--ink-3);cursor:not-allowed;}
+  .btn-outline{background:white;color:var(--ink);border:1.5px solid var(--border);}
+  .btn-outline:hover{background:var(--paper-2);}
+  .btn-sm{width:auto;padding:7px 16px;font-size:13px;border-radius:7px;}
 
-  /* Captcha row */
-  .captcha-row { display: flex; gap: 10px; align-items: stretch; }
-  .captcha-row input { flex: 1; }
-  .captcha-box {
-    background: var(--paper-2);
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius);
-    padding: 8px 16px;
-    font-family: 'DM Mono', monospace;
-    font-size: 20px; font-weight: 500;
-    letter-spacing: 0.2em;
-    color: var(--ink);
-    cursor: pointer; user-select: none;
-    transition: background 0.15s;
-    display: flex; align-items: center;
-  }
-  .captcha-box:hover { background: #e8e8e2; }
+  .error-banner{background:#fdf0ee;border:1px solid #f0c0bb;color:var(--danger);border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:18px;display:none;}
+  .error-banner.show{display:block;}
+  .demo-hint{background:#fffbea;border:1px solid #fde68a;border-radius:8px;padding:10px 14px;font-size:12px;color:#92400e;margin-bottom:20px;}
 
-  /* ─── BUTTONS ─── */
-  .btn {
-    display: block; width: 100%;
-    padding: 13px 20px;
-    background: var(--accent); color: white;
-    border: none; border-radius: var(--radius);
-    font-family: inherit; font-size: 15px; font-weight: 500;
-    cursor: pointer; transition: background 0.15s, transform 0.1s;
-    text-align: center;
-  }
-  .btn:hover { background: var(--accent-hover); }
-  .btn:active { transform: scale(0.98); }
-  .btn-outline {
-    background: white; color: var(--ink);
-    border: 1.5px solid var(--border);
-  }
-  .btn-outline:hover { background: var(--paper-2); }
-  .btn-sm {
-    width: auto; padding: 7px 16px;
-    font-size: 13px; border-radius: 7px;
-  }
-  .btn-danger { background: var(--danger); }
-  .btn-danger:hover { background: #a93226; }
+  /* ── HUB ── */
+  .hub-wrap{flex:1;padding:28px 24px;max-width:720px;margin:0 auto;width:100%;}
+  .hub-heading{font-size:20px;font-weight:700;margin-bottom:3px;}
+  .hub-sub{font-size:13px;color:var(--ink-3);margin-bottom:24px;}
 
-  /* ─── ERROR BANNER ─── */
-  .error-banner {
-    background: #fdf0ee;
-    border: 1px solid #f0c0bb;
-    color: var(--danger);
-    border-radius: 8px;
-    padding: 10px 14px;
-    font-size: 13px;
-    margin-bottom: 18px;
-    display: none;
-  }
-  .error-banner.show { display: block; }
+  .all-voted-banner{background:var(--accent-light);border:1px solid #b6ddc8;border-radius:12px;padding:16px 20px;margin-bottom:20px;display:none;align-items:center;gap:12px;font-size:14px;}
 
-  /* ─── ACTIVITY SELECT ─── */
-  .page-content { flex: 1; padding: 32px 24px; max-width: 600px; margin: 0 auto; width: 100%; }
-  .page-heading { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
-  .page-sub { font-size: 13px; color: var(--ink-3); margin-bottom: 24px; }
+  .activity-block{background:white;border:1.5px solid var(--border);border-radius:14px;margin-bottom:20px;overflow:hidden;}
+  .activity-block-header{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+  .abh-left{flex:1;}
+  .abh-name{font-size:16px;font-weight:700;margin-bottom:3px;}
+  .abh-desc{font-size:13px;color:var(--ink-2);margin-bottom:6px;line-height:1.5;}
+  .abh-meta{font-size:12px;color:var(--ink-3);font-family:'DM Mono',monospace;}
+  .badge{font-size:11px;font-weight:500;font-family:'DM Mono',monospace;padding:4px 10px;border-radius:20px;letter-spacing:.04em;white-space:nowrap;}
+  .badge-active{background:var(--accent-light);color:var(--accent);}
+  .badge-voted{background:#f0f0f0;color:var(--ink-3);}
 
-  .activity-card {
-    background: white; border: 1.5px solid var(--border);
-    border-radius: 12px; padding: 20px 22px;
-    margin-bottom: 12px; cursor: pointer;
-    transition: border-color 0.15s, box-shadow 0.15s, transform 0.12s;
-    display: flex; align-items: center; justify-content: space-between;
-  }
-  .activity-card:hover { border-color: var(--accent); box-shadow: 0 2px 16px rgba(26,92,58,0.1); transform: translateY(-1px); }
-  .activity-name { font-size: 16px; font-weight: 600; margin-bottom: 3px; }
-  .activity-meta { font-size: 12px; color: var(--ink-3); font-family: 'DM Mono', monospace; }
-  .badge {
-    font-size: 11px; font-weight: 500; font-family: 'DM Mono', monospace;
-    padding: 4px 10px; border-radius: 20px;
-    letter-spacing: 0.04em;
-  }
-  .badge-active { background: var(--accent-light); color: var(--accent); }
+  .activity-candidates{padding:16px 22px;display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:12px;}
+  .candidate-card{background:var(--paper);border:2px solid var(--border);border-radius:12px;overflow:hidden;cursor:pointer;transition:border-color .15s,box-shadow .15s,transform .12s;position:relative;}
+  .candidate-card:hover{border-color:var(--accent);box-shadow:0 3px 16px rgba(26,92,58,.12);transform:translateY(-2px);}
+  .candidate-card.selected{border-color:var(--accent);box-shadow:0 0 0 3px rgba(26,92,58,.15);}
+  .candidate-card.selected::after{content:'✓';position:absolute;top:8px;right:8px;width:22px;height:22px;background:var(--accent);color:white;border-radius:50%;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;line-height:22px;text-align:center;}
+  .cand-avatar{width:100%;aspect-ratio:1;background:linear-gradient(135deg,var(--paper-2),var(--border));display:flex;align-items:center;justify-content:center;font-size:36px;}
+  .cand-info{padding:12px;}
+  .cand-name{font-size:14px;font-weight:600;margin-bottom:3px;}
+  .cand-desc{font-size:11px;color:var(--ink-3);line-height:1.5;}
 
-  /* ─── VOTING PAGE ─── */
-  .vote-header {
-    background: white;
-    border-bottom: 1px solid var(--border);
-    padding: 20px 24px;
-  }
-  .vote-header h1 { font-size: 18px; font-weight: 700; }
-  .vote-header p { font-size: 13px; color: var(--ink-3); margin-top: 2px; }
+  .hub-footer{position:sticky;bottom:0;z-index:50;background:rgba(250,250,248,0.95);backdrop-filter:blur(8px);border-top:1px solid var(--border);padding:14px 24px;display:none;}
+  .hub-footer.visible{display:block;}
+  .hub-footer .btn{max-width:720px;margin:0 auto;padding:14px 20px;font-size:15px;}
+  .hub-footer-hint{text-align:center;font-size:12px;color:var(--ink-3);margin-top:6px;max-width:720px;margin-left:auto;margin-right:auto;}
 
-  .candidates-grid {
-    flex: 1; padding: 24px;
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 16px;
-    align-content: start;
-    max-width: 760px; margin: 0 auto; width: 100%;
-  }
+  .voted-row{padding:18px 22px;display:flex;align-items:center;gap:14px;}
+  .voted-check{width:38px;height:38px;background:var(--accent-light);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
 
-  .candidate-card {
-    background: white;
-    border: 2px solid var(--border);
-    border-radius: 14px;
-    overflow: hidden; cursor: pointer;
-    transition: border-color 0.15s, box-shadow 0.15s, transform 0.12s;
-    position: relative;
-  }
-  .candidate-card:hover { border-color: var(--accent); box-shadow: 0 4px 20px rgba(26,92,58,0.12); transform: translateY(-2px); }
-  .candidate-card.selected {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(26,92,58,0.15), 0 4px 20px rgba(26,92,58,0.12);
-  }
-  .candidate-card.selected::after {
-    content: '✓';
-    position: absolute; top: 10px; right: 10px;
-    width: 24px; height: 24px;
-    background: var(--accent); color: white;
-    border-radius: 50%; font-size: 13px; font-weight: 700;
-    display: flex; align-items: center; justify-content: center;
-    line-height: 24px; text-align: center;
-  }
-  .candidate-avatar {
-    width: 100%; aspect-ratio: 1;
-    object-fit: cover; display: block;
-    background: var(--paper-2);
-  }
-  .candidate-avatar-placeholder {
-    width: 100%; aspect-ratio: 1;
-    background: linear-gradient(135deg, var(--paper-2), var(--border));
-    display: flex; align-items: center; justify-content: center;
-    font-size: 40px;
-  }
-  .candidate-info { padding: 14px; }
-  .candidate-name { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
-  .candidate-desc { font-size: 12px; color: var(--ink-3); line-height: 1.5; }
+  /* Result bars */
+  .result-bar-wrap{padding:14px 22px;border-top:1px solid var(--border);}
+  .rb-header{font-size:12px;color:var(--ink-3);margin-bottom:10px;display:flex;justify-content:space-between;}
+  .rb-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+  .rb-name{font-size:13px;width:70px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .rb-track{flex:1;height:8px;background:var(--paper-2);border-radius:4px;overflow:hidden;}
+  .rb-fill{height:100%;background:var(--accent);border-radius:4px;transition:width .8s cubic-bezier(.22,1,.36,1);}
+  .rb-pct{font-size:12px;color:var(--ink-3);font-family:'DM Mono',monospace;width:34px;text-align:right;}
 
-  /* ─── STICKY VOTE BTN ─── */
-  .vote-footer {
-    position: sticky; bottom: 0;
-    background: rgba(250,250,248,0.95);
-    backdrop-filter: blur(8px);
-    border-top: 1px solid var(--border);
-    padding: 16px 24px;
-  }
-  .vote-footer .btn { max-width: 760px; margin: 0 auto; }
+  /* ── ADMIN ── */
+  .admin-main{flex:1;overflow-y:auto;padding:32px;}
+  .admin-section{display:none;}
+  .admin-section.active{display:block;animation:fadeIn .25s ease;}
+  .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;}
+  .section-title{font-size:20px;font-weight:700;}
 
-  /* ─── VOTED STATE ─── */
-  .voted-wrap {
-    flex: 1; display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    padding: 40px 24px; text-align: center;
-  }
-  .voted-icon {
-    width: 72px; height: 72px;
-    background: var(--accent-light);
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 32px; margin-bottom: 20px;
-    animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  }
-  @keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-  .voted-title { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
-  .voted-sub { font-size: 14px; color: var(--ink-3); max-width: 280px; }
+  .table-wrap{background:white;border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+  table{width:100%;border-collapse:collapse;}
+  th{text-align:left;padding:12px 16px;font-size:12px;font-weight:600;color:var(--ink-3);letter-spacing:.06em;text-transform:uppercase;background:var(--paper);border-bottom:1px solid var(--border);}
+  td{padding:13px 16px;font-size:14px;border-bottom:1px solid var(--border);vertical-align:top;}
+  tr:last-child td{border-bottom:none;}
+  tr:hover td{background:var(--paper);}
+  .status-tag{font-size:11px;padding:3px 9px;border-radius:20px;font-weight:500;font-family:'DM Mono',monospace;}
+  .status-active{background:var(--accent-light);color:var(--accent);}
+  .status-ended{background:#f5f5f5;color:#999;}
 
-  /* ─── MODAL ─── */
-  .modal-overlay {
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.4);
-    backdrop-filter: blur(3px);
-    z-index: 200; display: none;
-    align-items: center; justify-content: center;
-    padding: 20px;
-    animation: fadeIn 0.2s ease;
-  }
-  .modal-overlay.show { display: flex; }
-  .modal {
-    background: white; border-radius: 16px;
-    padding: 32px; max-width: 360px; width: 100%;
-    box-shadow: var(--shadow-md);
-    animation: slideUp 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  }
-  @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-  .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 10px; }
-  .modal-body { font-size: 14px; color: var(--ink-2); margin-bottom: 24px; line-height: 1.6; }
-  .modal-body strong { color: var(--ink); }
-  .modal-actions { display: flex; gap: 10px; }
-  .modal-actions .btn { flex: 1; }
+  .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:14px;margin-bottom:24px;}
+  .stat-card{background:white;border:1px solid var(--border);border-radius:12px;padding:18px 20px;}
+  .stat-label{font-size:12px;color:var(--ink-3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em;}
+  .stat-value{font-size:28px;font-weight:700;line-height:1;}
+  .stat-value.accent{color:var(--accent);}
 
-  /* ─── ADMIN PANEL ─── */
-  .admin-layout { flex: 1; display: flex; }
-  .admin-sidebar {
-    width: 220px; background: var(--ink);
-    color: white; padding: 24px 0;
-    flex-shrink: 0;
-  }
-  .sidebar-logo {
-    padding: 0 20px 20px;
-    font-size: 13px; font-family: 'DM Mono', monospace;
-    color: rgba(255,255,255,0.4); letter-spacing: 0.1em; text-transform: uppercase;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-    margin-bottom: 12px;
-  }
-  .sidebar-nav-item {
-    padding: 10px 20px; font-size: 14px; cursor: pointer;
-    color: rgba(255,255,255,0.65);
-    transition: background 0.15s, color 0.15s;
-    display: flex; align-items: center; gap: 10px;
-  }
-  .sidebar-nav-item:hover { background: rgba(255,255,255,0.07); color: white; }
-  .sidebar-nav-item.active { background: rgba(255,255,255,0.12); color: white; font-weight: 500; }
-  .sidebar-icon { font-size: 16px; width: 20px; text-align: center; }
+  .chart-wrap{background:white;border:1px solid var(--border);border-radius:12px;padding:24px;}
+  .chart-title{font-size:15px;font-weight:600;margin-bottom:20px;}
+  .pie-container{display:flex;align-items:center;gap:32px;flex-wrap:wrap;}
+  .legend{display:flex;flex-direction:column;gap:10px;}
+  .legend-item{display:flex;align-items:center;gap:8px;font-size:13px;}
+  .legend-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;}
 
-  .admin-main { flex: 1; overflow-y: auto; padding: 32px; }
-  .admin-section { display: none; }
-  .admin-section.active { display: block; animation: fadeIn 0.25s ease; }
+  .tab-nav{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:24px;}
+  .tab-btn{padding:10px 18px;font-size:13px;font-weight:500;color:var(--ink-3);background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .15s,border-color .15s;}
+  .tab-btn:hover{color:var(--ink);}
+  .tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);}
+  .tab-pane{display:none;}
+  .tab-pane.active{display:block;animation:fadeIn .2s ease;}
 
-  .section-header {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 24px;
-  }
-  .section-title { font-size: 20px; font-weight: 700; }
+  .nav-switch{display:flex;gap:8px;align-items:center;background:var(--paper-2);padding:4px;border-radius:10px;border:1px solid var(--border);}
+  .nav-switch-btn{padding:6px 14px;font-size:13px;font-weight:500;color:var(--ink-3);background:none;border:none;cursor:pointer;border-radius:7px;transition:all .15s;}
+  .nav-switch-btn.active{background:white;color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.1);}
 
-  /* ─── TABLE ─── */
-  .table-wrap { background: white; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
-  table { width: 100%; border-collapse: collapse; }
-  th {
-    text-align: left; padding: 12px 16px;
-    font-size: 12px; font-weight: 600; color: var(--ink-3);
-    letter-spacing: 0.06em; text-transform: uppercase;
-    background: var(--paper); border-bottom: 1px solid var(--border);
-  }
-  td { padding: 14px 16px; font-size: 14px; border-bottom: 1px solid var(--border); }
-  tr:last-child td { border-bottom: none; }
-  tr:hover td { background: var(--paper); }
+  .import-result{background:var(--accent-light);border:1px solid #b6ddc8;border-radius:8px;padding:14px 16px;font-size:13px;margin-top:14px;display:none;}
+  .import-result.show{display:block;}
+  .divider{height:1px;background:var(--border);margin:24px 0;}
 
-  .status-tag {
-    font-size: 11px; padding: 3px 9px;
-    border-radius: 20px; font-weight: 500;
-    font-family: 'DM Mono', monospace;
-  }
-  .status-active { background: var(--accent-light); color: var(--accent); }
-  .status-upcoming { background: #fef4e4; color: var(--warn); }
-  .status-ended { background: #f5f5f5; color: #999; }
-
-  /* ─── STATS CARDS ─── */
-  .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 28px; }
-  .stat-card { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; }
-  .stat-label { font-size: 12px; color: var(--ink-3); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.06em; }
-  .stat-value { font-size: 28px; font-weight: 700; line-height: 1; }
-  .stat-value.accent { color: var(--accent); }
-
-  /* Pie chart */
-  .chart-wrap { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 24px; }
-  .chart-title { font-size: 15px; font-weight: 600; margin-bottom: 20px; }
-  .pie-container { display: flex; align-items: center; gap: 32px; flex-wrap: wrap; }
-  svg.pie { overflow: visible; }
-  .legend { display: flex; flex-direction: column; gap: 10px; }
-  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; }
-  .legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
-
-  /* DIVIDER */
-  .divider { height: 1px; background: var(--border); margin: 24px 0; }
-
-  /* ─── ADMIN TABS ─── */
-  .tab-nav { display: flex; gap: 2px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
-  .tab-btn {
-    padding: 10px 18px; font-size: 13px; font-weight: 500;
-    color: var(--ink-3); background: none; border: none;
-    cursor: pointer; border-bottom: 2px solid transparent;
-    margin-bottom: -1px; transition: color 0.15s, border-color 0.15s;
-  }
-  .tab-btn:hover { color: var(--ink); }
-  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
-  .tab-pane { display: none; }
-  .tab-pane.active { display: block; animation: fadeIn 0.2s ease; }
-
-  /* NAV SWITCH */
-  .nav-switch {
-    display: flex; gap: 8px; align-items: center;
-    background: var(--paper-2); padding: 4px;
-    border-radius: 10px; border: 1px solid var(--border);
-  }
-  .nav-switch-btn {
-    padding: 6px 14px; font-size: 13px; font-weight: 500;
-    color: var(--ink-3); background: none; border: none;
-    cursor: pointer; border-radius: 7px; transition: all 0.15s;
-  }
-  .nav-switch-btn.active { background: white; color: var(--ink); box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
-
-  /* ─── TEXTAREA ─── */
-  textarea {
-    width: 100%; padding: 12px 14px;
-    border: 1.5px solid var(--border); border-radius: var(--radius);
-    font-family: 'DM Mono', monospace; font-size: 13px;
-    background: var(--paper); color: var(--ink);
-    resize: vertical; outline: none;
-    transition: border-color 0.15s;
-  }
-  textarea:focus { border-color: var(--accent); background: white; }
-
-  .import-result {
-    background: var(--accent-light); border: 1px solid #b6ddc8;
-    border-radius: 8px; padding: 14px 16px; font-size: 13px;
-    margin-top: 14px; display: none;
-  }
-  .import-result.show { display: block; }
-
-  /* ─── DEMO HINT ─── */
-  .demo-hint {
-    background: #fffbea; border: 1px solid #fde68a;
-    border-radius: 8px; padding: 10px 14px;
-    font-size: 12px; color: #92400e;
-    margin-bottom: 20px;
-  }
-  .demo-hint strong { color: #78350f; }
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);backdrop-filter:blur(3px);z-index:200;display:none;align-items:center;justify-content:center;padding:20px;}
+  .modal-overlay.show{display:flex;animation:fadeIn .2s ease;}
+  .modal{background:white;border-radius:16px;padding:32px;max-width:360px;width:100%;box-shadow:var(--shadow-md);animation:slideUp .25s cubic-bezier(.175,.885,.32,1.275);}
+  @keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:none;opacity:1}}
+  .modal-title{font-size:18px;font-weight:700;margin-bottom:10px;}
+  .modal-body{font-size:14px;color:var(--ink-2);margin-bottom:24px;line-height:1.6;}
+  .modal-actions{display:flex;gap:10px;}
+  .modal-actions .btn{flex:1;}
 </style>
 </head>
 <body>
 
-<!-- ══════════════ SCREEN 1: EMPLOYEE LOGIN ══════════════ -->
+<!-- S1: EMPLOYEE LOGIN -->
 <div id="screen-login" class="screen active">
   <nav class="topbar">
     <span class="topbar-logo">VoteSystem v0.2</span>
@@ -433,21 +167,17 @@
       <div class="card-title">員工登入</div>
       <div class="card-subtitle">請輸入工號、生日與驗證碼</div>
       <div class="demo-hint">
-        <strong>示範帳號：</strong>工號 <code>1233C00</code>，生日 <code>19900115</code>，驗證碼點擊查看
+        <strong>帳號 A（有 2 個活動可投）：</strong>工號 <code>1233C00</code>，生日 <code>19900115</code><br>
+        <strong>帳號 B（所有活動已投完）：</strong>工號 <code>1233C99</code>，生日 <code>19850101</code><br>
+        驗證碼：點擊右側圖示取得
       </div>
-      <div id="login-error" class="error-banner">工號或生日有誤，或您不在任何有效活動名單中。</div>
-      <div class="form-group">
-        <label>工號</label>
-        <input type="text" id="emp-no" placeholder="例：1233C00" maxlength="20">
-      </div>
-      <div class="form-group">
-        <label>生日（8 碼，yyyyMMdd）</label>
-        <input type="text" id="emp-birth" placeholder="例：19900115" maxlength="8">
-      </div>
+      <div id="login-error" class="error-banner"></div>
+      <div class="form-group"><label>工號</label><input type="text" id="emp-no" placeholder="例：1233C00" maxlength="20"></div>
+      <div class="form-group"><label>生日（yyyyMMdd）</label><input type="text" id="emp-birth" placeholder="例：19900115" maxlength="8"></div>
       <div class="form-group">
         <label>驗證碼</label>
         <div class="captcha-row">
-          <input type="text" id="emp-captcha" placeholder="請輸入右側驗證碼" maxlength="4">
+          <input type="text" id="emp-captcha" placeholder="輸入右側驗證碼" maxlength="4">
           <div class="captcha-box" id="captcha-display" onclick="refreshCaptcha()"></div>
         </div>
       </div>
@@ -456,97 +186,29 @@
   </div>
 </div>
 
-<!-- ══════════════ SCREEN 2: ACTIVITY SELECT ══════════════ -->
-<div id="screen-activities" class="screen">
+<!-- S2: VOTING HUB -->
+<div id="screen-hub" class="screen">
   <nav class="topbar">
     <span class="topbar-logo">VoteSystem</span>
-    <span class="topbar-title">選擇投票活動</span>
+    <span class="topbar-title" id="hub-nav-title">投票活動</span>
     <button class="topbar-action" onclick="doLogout()">登出</button>
   </nav>
-  <div class="page-content">
-    <div class="page-heading">您有以下可參與的投票活動</div>
-    <div class="page-sub">請選擇您要進行投票的活動</div>
-    <div id="activity-list">
-      <div class="activity-card" onclick="enterVote('2026 模範員工票選', false)">
-        <div>
-          <div class="activity-name">2026 模範員工票選</div>
-          <div class="activity-meta">VOTE-20260416-0001 &nbsp;·&nbsp; 2026/05/01 — 2026/05/03</div>
-        </div>
-        <span class="badge badge-active">進行中</span>
-      </div>
-      <div class="activity-card" onclick="enterVote('2026 最佳創新獎', true)">
-        <div>
-          <div class="activity-name">2026 最佳創新獎</div>
-          <div class="activity-meta">VOTE-20260416-0002 &nbsp;·&nbsp; 2026/05/01 — 2026/05/05</div>
-        </div>
-        <span class="badge badge-active">進行中</span>
-      </div>
+  <div class="hub-wrap">
+    <div class="hub-heading" id="hub-heading"></div>
+    <div class="hub-sub" id="hub-sub"></div>
+    <div id="all-voted-banner" class="all-voted-banner">
+      <span style="font-size:22px">✓</span>
+      <div><strong>您已完成所有投票活動。</strong><br><span style="color:var(--ink-3);font-size:13px">以下為各活動目前的即時得票佔比</span></div>
     </div>
+    <div id="hub-activities"></div>
+  </div>
+  <div id="hub-footer" class="hub-footer">
+    <button class="btn" id="hub-submit-btn" onclick="openBulkConfirm()">送出所有投票</button>
+    <div class="hub-footer-hint" id="hub-footer-hint"></div>
   </div>
 </div>
 
-<!-- ══════════════ SCREEN 3: VOTE ══════════════ -->
-<div id="screen-vote" class="screen">
-  <nav class="topbar">
-    <span class="topbar-logo">VoteSystem</span>
-    <span class="topbar-title" id="vote-activity-name"></span>
-    <button class="topbar-action" onclick="goBack()">← 返回</button>
-  </nav>
-  <div class="vote-header">
-    <h1 id="vote-header-title"></h1>
-    <p>請選擇一位候選人，確認後送出投票</p>
-  </div>
-  <div class="candidates-grid">
-    <div class="candidate-card" onclick="selectCandidate(this, '王小明')">
-      <div class="candidate-avatar-placeholder">👨‍💼</div>
-      <div class="candidate-info">
-        <div class="candidate-name">王小明</div>
-        <div class="candidate-desc">資深工程師，深耕技術創新十年，帶領多項關鍵系統上線。</div>
-      </div>
-    </div>
-    <div class="candidate-card" onclick="selectCandidate(this, '林美華')">
-      <div class="candidate-avatar-placeholder">👩‍🏫</div>
-      <div class="candidate-info">
-        <div class="candidate-name">林美華</div>
-        <div class="candidate-desc">人資主管，致力於員工福祉與職涯發展，獲同仁一致好評。</div>
-      </div>
-    </div>
-    <div class="candidate-card" onclick="selectCandidate(this, '陳建宏')">
-      <div class="candidate-avatar-placeholder">👨‍🔬</div>
-      <div class="candidate-info">
-        <div class="candidate-name">陳建宏</div>
-        <div class="candidate-desc">研發部門主力，專利發明人，積極推動跨部門合作與知識分享。</div>
-      </div>
-    </div>
-    <div class="candidate-card" onclick="selectCandidate(this, '張雅婷')">
-      <div class="candidate-avatar-placeholder">👩‍💼</div>
-      <div class="candidate-info">
-        <div class="candidate-name">張雅婷</div>
-        <div class="candidate-desc">業務總監，連續三年達成業績目標，擅長客戶關係管理與開發。</div>
-      </div>
-    </div>
-  </div>
-  <div class="vote-footer">
-    <button class="btn" id="submit-btn" onclick="openConfirm()">確認投票</button>
-  </div>
-</div>
-
-<!-- ══════════════ SCREEN 4: VOTED ══════════════ -->
-<div id="screen-voted" class="screen">
-  <nav class="topbar">
-    <span class="topbar-logo">VoteSystem</span>
-    <span class="topbar-title">投票完成</span>
-    <button class="topbar-action" onclick="doLogout()">登出</button>
-  </nav>
-  <div class="voted-wrap">
-    <div class="voted-icon">✓</div>
-    <div class="voted-title">投票已完成</div>
-    <div class="voted-sub" id="voted-sub-text"></div>
-    <div style="margin-top: 12px; font-size: 12px; color: var(--ink-3);">感謝您參與本次投票</div>
-  </div>
-</div>
-
-<!-- ══════════════ SCREEN 5: ADMIN LOGIN ══════════════ -->
+<!-- S3: ADMIN LOGIN -->
 <div id="screen-admin-login" class="screen">
   <nav class="topbar">
     <span class="topbar-logo">VoteSystem</span>
@@ -557,20 +219,14 @@
     <div class="card">
       <div class="card-title">管理員登入</div>
       <div class="card-subtitle">請輸入管理者帳號與密碼</div>
-      <div class="demo-hint"><strong>示範帳號：</strong>帳號 <code>admin</code>，密碼 <code>Admin@123</code>，驗證碼點擊查看</div>
-      <div id="admin-login-error" class="error-banner">帳號或密碼有誤。</div>
-      <div class="form-group">
-        <label>帳號</label>
-        <input type="text" id="admin-account" placeholder="輸入管理員帳號">
-      </div>
-      <div class="form-group">
-        <label>密碼</label>
-        <input type="password" id="admin-password" placeholder="輸入密碼">
-      </div>
+      <div class="demo-hint"><strong>示範帳號：</strong>帳號 <code>admin</code>，密碼 <code>Admin@123</code>，驗證碼點擊取得</div>
+      <div id="admin-login-error" class="error-banner"></div>
+      <div class="form-group"><label>帳號</label><input type="text" id="admin-account" placeholder="管理員帳號"></div>
+      <div class="form-group"><label>密碼</label><input type="password" id="admin-password" placeholder="密碼"></div>
       <div class="form-group">
         <label>驗證碼</label>
         <div class="captcha-row">
-          <input type="text" id="admin-captcha" placeholder="請輸入右側驗證碼" maxlength="4">
+          <input type="text" id="admin-captcha" placeholder="輸入右側驗證碼" maxlength="4">
           <div class="captcha-box" id="admin-captcha-display" onclick="refreshAdminCaptcha()"></div>
         </div>
       </div>
@@ -579,218 +235,155 @@
   </div>
 </div>
 
-<!-- ══════════════ SCREEN 6: ADMIN DASHBOARD ══════════════ -->
+<!-- S4: ADMIN DASHBOARD -->
 <div id="screen-admin" class="screen">
   <nav class="topbar">
     <span class="topbar-logo">VoteSystem 後台</span>
     <div class="nav-switch">
-      <button class="nav-switch-btn active" onclick="switchAdminSection('activities', this)">活動管理</button>
-      <button class="nav-switch-btn" onclick="switchAdminSection('result', this)">開票結果</button>
-      <button class="nav-switch-btn" onclick="switchAdminSection('users', this)">帳號管理</button>
+      <button class="nav-switch-btn active" onclick="switchAdminSection('activities',this)">活動管理</button>
+      <button class="nav-switch-btn" onclick="switchAdminSection('users',this)">帳號管理</button>
     </div>
     <button class="topbar-action" onclick="doLogout()">登出</button>
   </nav>
-  <div class="admin-layout">
-    <div class="admin-main">
+  <div class="admin-main">
 
-      <!-- Activities Section -->
-      <div id="admin-activities" class="admin-section active">
-        <div class="section-header">
-          <div class="section-title">投票活動管理</div>
-          <button class="btn btn-sm" onclick="alert('新增活動（示範）')">＋ 新增活動</button>
+    <div id="admin-activities" class="admin-section active">
+      <div class="section-header">
+        <div class="section-title">投票活動管理</div>
+        <button class="btn btn-sm" onclick="alert('新增活動（示範）')">＋ 新增活動</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>活動代號</th><th>活動名稱</th><th>說明</th><th>開始</th><th>結束</th><th>狀態</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--ink-3)">VOTE-20260416-0001</span></td>
+              <td><strong>2026 模範員工票選</strong></td>
+              <td style="font-size:13px;color:var(--ink-2);max-width:180px;line-height:1.4">表彰年度表現最優異的員工，由全體同仁票選決定。</td>
+              <td style="font-size:13px">2026/05/01</td><td style="font-size:13px">2026/05/03</td>
+              <td><span class="status-tag status-active">進行中</span></td>
+              <td><button class="btn btn-outline btn-sm" onclick="showActivityDetail(0)">查看詳情</button></td>
+            </tr>
+            <tr>
+              <td><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--ink-3)">VOTE-20260416-0002</span></td>
+              <td><strong>2026 最佳創新獎</strong></td>
+              <td style="font-size:13px;color:var(--ink-2);max-width:180px;line-height:1.4">鼓勵提出創新方案並落地執行的同仁。</td>
+              <td style="font-size:13px">2026/05/01</td><td style="font-size:13px">2026/05/05</td>
+              <td><span class="status-tag status-active">進行中</span></td>
+              <td><button class="btn btn-outline btn-sm" onclick="showActivityDetail(1)">查看詳情</button></td>
+            </tr>
+            <tr>
+              <td><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--ink-3)">VOTE-20260101-0001</span></td>
+              <td>2026 年度最佳部門</td>
+              <td style="font-size:13px;color:var(--ink-3)">—</td>
+              <td style="font-size:13px">2026/01/10</td><td style="font-size:13px">2026/01/15</td>
+              <td><span class="status-tag status-ended">已結束</span></td>
+              <td><button class="btn btn-outline btn-sm" onclick="showActivityDetail(2)">查看詳情</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Detail panel -->
+      <div id="activity-detail" style="display:none;margin-top:28px;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+          <button onclick="closeActivityDetail()" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--ink-3)">← 返回列表</button>
+          <span id="detail-name" style="font-size:16px;font-weight:700"></span>
+          <span id="detail-badge" class="status-tag"></span>
         </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>活動代號</th>
-                <th>活動名稱</th>
-                <th>開始時間</th>
-                <th>結束時間</th>
-                <th>狀態</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--ink-3)">VOTE-20260416-0001</span></td>
-                <td><strong>2026 模範員工票選</strong></td>
-                <td>2026/05/01 09:00</td>
-                <td>2026/05/03 18:00</td>
-                <td><span class="status-tag status-active">進行中</span></td>
-                <td><button class="btn btn-outline btn-sm" onclick="showActivityDetail()">查看詳情</button></td>
-              </tr>
-              <tr>
-                <td><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--ink-3)">VOTE-20260416-0002</span></td>
-                <td><strong>2026 最佳創新獎</strong></td>
-                <td>2026/05/01 09:00</td>
-                <td>2026/05/05 18:00</td>
-                <td><span class="status-tag status-active">進行中</span></td>
-                <td><button class="btn btn-outline btn-sm" onclick="showActivityDetail()">查看詳情</button></td>
-              </tr>
-              <tr>
-                <td><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--ink-3)">VOTE-20260101-0001</span></td>
-                <td>2026 年度最佳部門</td>
-                <td>2026/01/10 09:00</td>
-                <td>2026/01/15 18:00</td>
-                <td><span class="status-tag status-ended">已結束</span></td>
-                <td><button class="btn btn-outline btn-sm" onclick="switchAdminSection('result', document.querySelectorAll('.nav-switch-btn')[1])">查看開票</button></td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="tab-nav">
+          <button class="tab-btn active" onclick="switchTab(this,'tab-basic')">基本資料</button>
+          <button class="tab-btn" onclick="switchTab(this,'tab-voters')">可投票名單</button>
+          <button class="tab-btn" onclick="switchTab(this,'tab-candidates')">候選人管理</button>
+          <button class="tab-btn" onclick="switchTab(this,'tab-results')">開票頁面</button>
         </div>
 
-        <!-- Activity Detail Tabs (hidden by default) -->
-        <div id="activity-detail" style="display:none; margin-top: 28px;">
-          <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
-            <button onclick="document.getElementById('activity-detail').style.display='none'" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--ink-3)">← 返回列表</button>
-            <span style="font-size:16px;font-weight:700">2026 模範員工票選</span>
-            <span class="status-tag status-active">進行中</span>
+        <div id="tab-basic" class="tab-pane active">
+          <div id="basic-content"></div>
+        </div>
+
+        <div id="tab-voters" class="tab-pane">
+          <p style="font-size:13px;color:var(--ink-3);margin-bottom:14px">每行格式：工號 生日（例：1233C00 1990/01/15）</p>
+          <textarea rows="6" placeholder="1233C00 1990/01/15&#10;1233C01 1988/06/22"></textarea>
+          <div style="margin-top:12px"><button class="btn btn-sm" onclick="doImport()">匯入名單</button></div>
+          <div id="import-result" class="import-result show">✅ 已匯入 3 筆，成功 3，失敗 0。</div>
+          <div class="divider"></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>工號</th><th>生日</th><th>匯入時間</th></tr></thead>
+              <tbody>
+                <tr><td>1233C00</td><td style="font-family:'DM Mono',monospace">19900115</td><td style="font-size:12px;color:var(--ink-3)">2026/04/16 10:30</td></tr>
+                <tr><td>1233C01</td><td style="font-family:'DM Mono',monospace">19880622</td><td style="font-size:12px;color:var(--ink-3)">2026/04/16 10:30</td></tr>
+                <tr><td>1233C99</td><td style="font-family:'DM Mono',monospace">19850101</td><td style="font-size:12px;color:var(--ink-3)">2026/04/16 10:30</td></tr>
+              </tbody>
+            </table>
           </div>
-          <div class="tab-nav">
-            <button class="tab-btn active" onclick="switchTab(this,'tab-basic')">基本資料</button>
-            <button class="tab-btn" onclick="switchTab(this,'tab-voters')">可投票名單</button>
-            <button class="tab-btn" onclick="switchTab(this,'tab-candidates')">候選人管理</button>
-            <button class="tab-btn" onclick="switchTab(this,'tab-results')">開票頁面</button>
+        </div>
+
+        <div id="tab-candidates" class="tab-pane">
+          <div style="margin-bottom:14px"><button class="btn btn-sm">＋ 新增候選人</button></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>排序</th><th>姓名</th><th>介紹</th><th>狀態</th><th>操作</th></tr></thead>
+              <tbody id="cand-table-body">
+                <tr><td>1</td><td><strong>王小明</strong></td><td style="font-size:12px;color:var(--ink-3)">資深工程師，帶領多項關鍵系統上線。</td><td><span class="status-tag status-active">啟用</span></td><td><button class="btn btn-outline btn-sm">編輯</button></td></tr>
+                <tr><td>2</td><td><strong>林美華</strong></td><td style="font-size:12px;color:var(--ink-3)">人資主管，獲同仁一致好評。</td><td><span class="status-tag status-active">啟用</span></td><td><button class="btn btn-outline btn-sm">編輯</button></td></tr>
+                <tr><td>3</td><td><strong>陳建宏</strong></td><td style="font-size:12px;color:var(--ink-3)">研發部門主力，專利發明人。</td><td><span class="status-tag status-active">啟用</span></td><td><button class="btn btn-outline btn-sm">編輯</button></td></tr>
+                <tr><td>4</td><td><strong>張雅婷</strong></td><td style="font-size:12px;color:var(--ink-3)">業務總監，連續三年達成業績目標。</td><td><span class="status-tag status-active">啟用</span></td><td><button class="btn btn-outline btn-sm">編輯</button></td></tr>
+              </tbody>
+            </table>
           </div>
-          <div id="tab-basic" class="tab-pane active">
-            <div class="table-wrap" style="max-width:480px">
-              <table>
-                <tr><th style="width:130px">活動名稱</th><td>2026 模範員工票選</td></tr>
-                <tr><th>活動代號</th><td style="font-family:'DM Mono',monospace;font-size:13px">VOTE-20260416-0001</td></tr>
-                <tr><th>開始時間</th><td>2026/05/01 09:00</td></tr>
-                <tr><th>結束時間</th><td>2026/05/03 18:00</td></tr>
-                <tr><th>狀態</th><td><span class="status-tag status-active">進行中</span></td></tr>
-                <tr><th>建立時間</th><td style="font-size:13px;color:var(--ink-3)">2026/04/16 10:22</td></tr>
-                <tr><th>建立人</th><td>admin</td></tr>
-              </table>
-            </div>
+        </div>
+
+        <div id="tab-results" class="tab-pane">
+          <div class="stats-row">
+            <div class="stat-card"><div class="stat-label">總可投票人數</div><div class="stat-value" id="res-total"></div></div>
+            <div class="stat-card"><div class="stat-label">已投票</div><div class="stat-value accent" id="res-voted"></div></div>
+            <div class="stat-card"><div class="stat-label">未投票</div><div class="stat-value" id="res-not"></div></div>
+            <div class="stat-card"><div class="stat-label">投票率</div><div class="stat-value accent" id="res-rate"></div></div>
           </div>
-          <div id="tab-voters" class="tab-pane">
-            <p style="font-size:13px;color:var(--ink-3);margin-bottom:14px">每行格式：工號 生日（例：1233C00 1990/01/15）</p>
-            <textarea rows="6" placeholder="1233C00 1990/01/15&#10;1233C01 1988/06/22&#10;1233C02 1995/03/08"></textarea>
-            <div style="margin-top:12px;display:flex;gap:10px">
-              <button class="btn btn-sm" onclick="doImport()">匯入名單</button>
-            </div>
-            <div id="import-result" class="import-result">
-              ✅ 匯入完成：共 3 筆，成功 3 筆，失敗 0 筆。
-            </div>
-            <div class="divider"></div>
-            <div class="table-wrap">
-              <table>
-                <thead><tr><th>工號</th><th>生日</th><th>匯入時間</th></tr></thead>
-                <tbody>
-                  <tr><td>1233C00</td><td style="font-family:'DM Mono',monospace">19900115</td><td style="font-size:12px;color:var(--ink-3)">2026/04/16 10:30</td></tr>
-                  <tr><td>1233C01</td><td style="font-family:'DM Mono',monospace">19880622</td><td style="font-size:12px;color:var(--ink-3)">2026/04/16 10:30</td></tr>
-                  <tr><td>1233C02</td><td style="font-family:'DM Mono',monospace">19950308</td><td style="font-size:12px;color:var(--ink-3)">2026/04/16 10:30</td></tr>
-                </tbody>
-              </table>
-            </div>
+          <div class="table-wrap" style="margin-bottom:24px">
+            <table>
+              <thead><tr><th>排名</th><th>候選人</th><th>得票數</th><th>得票比例</th></tr></thead>
+              <tbody id="res-table"></tbody>
+            </table>
           </div>
-          <div id="tab-candidates" class="tab-pane">
-            <div style="margin-bottom:14px"><button class="btn btn-sm" onclick="alert('新增候選人（示範）')">＋ 新增候選人</button></div>
-            <div class="table-wrap">
-              <table>
-                <thead><tr><th>排序</th><th>姓名</th><th>介紹</th><th>狀態</th><th>操作</th></tr></thead>
-                <tbody>
-                  <tr><td>1</td><td><strong>王小明</strong></td><td style="font-size:12px;color:var(--ink-3)">資深工程師，帶領多項關鍵系統上線。</td><td><span class="status-tag status-active">啟用</span></td><td><button class="btn btn-outline btn-sm">編輯</button></td></tr>
-                  <tr><td>2</td><td><strong>林美華</strong></td><td style="font-size:12px;color:var(--ink-3)">人資主管，獲同仁一致好評。</td><td><span class="status-tag status-active">啟用</span></td><td><button class="btn btn-outline btn-sm">編輯</button></td></tr>
-                  <tr><td>3</td><td><strong>陳建宏</strong></td><td style="font-size:12px;color:var(--ink-3)">研發部門主力，專利發明人。</td><td><span class="status-tag status-active">啟用</span></td><td><button class="btn btn-outline btn-sm">編輯</button></td></tr>
-                  <tr><td>4</td><td><strong>張雅婷</strong></td><td style="font-size:12px;color:var(--ink-3)">業務總監，連續三年達成業績目標。</td><td><span class="status-tag status-active">啟用</span></td><td><button class="btn btn-outline btn-sm">編輯</button></td></tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-          <div id="tab-results" class="tab-pane">
-            <div class="stats-row">
-              <div class="stat-card"><div class="stat-label">總可投票人數</div><div class="stat-value">100</div></div>
-              <div class="stat-card"><div class="stat-label">已投票</div><div class="stat-value accent">65</div></div>
-              <div class="stat-card"><div class="stat-label">未投票</div><div class="stat-value">35</div></div>
-              <div class="stat-card"><div class="stat-label">投票率</div><div class="stat-value accent">65%</div></div>
-            </div>
-            <div class="chart-wrap">
-              <div class="chart-title">各候選人得票比例</div>
-              <div class="pie-container">
-                <canvas id="pie-chart" width="180" height="180"></canvas>
-                <div class="legend" id="pie-legend"></div>
-              </div>
+          <div class="chart-wrap">
+            <div class="chart-title">得票圓餅圖</div>
+            <div class="pie-container">
+              <canvas id="pie-chart" width="180" height="180"></canvas>
+              <div class="legend" id="pie-legend"></div>
             </div>
           </div>
         </div>
       </div>
+    </div><!-- /admin-activities -->
 
-      <!-- Result Section -->
-      <div id="admin-result" class="admin-section">
-        <div class="section-header">
-          <div class="section-title">開票結果 — 2026 年度最佳部門</div>
-        </div>
-        <div class="stats-row">
-          <div class="stat-card"><div class="stat-label">總可投票人數</div><div class="stat-value">120</div></div>
-          <div class="stat-card"><div class="stat-label">已投票</div><div class="stat-value accent">98</div></div>
-          <div class="stat-card"><div class="stat-label">未投票</div><div class="stat-value">22</div></div>
-          <div class="stat-card"><div class="stat-label">投票率</div><div class="stat-value accent">81.7%</div></div>
-        </div>
-        <div class="table-wrap" style="margin-bottom:24px">
-          <table>
-            <thead><tr><th>排名</th><th>候選人</th><th>得票數</th><th>得票比例</th></tr></thead>
-            <tbody>
-              <tr><td>🥇 1</td><td><strong>技術研發部</strong></td><td>42</td><td>42.9%</td></tr>
-              <tr><td>🥈 2</td><td><strong>業務拓展部</strong></td><td>31</td><td>31.6%</td></tr>
-              <tr><td>🥉 3</td><td>客戶服務部</td><td>25</td><td>25.5%</td></tr>
-            </tbody>
-          </table>
-        </div>
-        <div class="chart-wrap">
-          <div class="chart-title">得票圓餅圖</div>
-          <div class="pie-container">
-            <canvas id="pie-chart-2" width="180" height="180"></canvas>
-            <div class="legend" id="pie-legend-2"></div>
-          </div>
-        </div>
+    <div id="admin-users" class="admin-section">
+      <div class="section-header">
+        <div class="section-title">管理者帳號管理</div>
+        <button class="btn btn-sm">＋ 新增帳號</button>
       </div>
-
-      <!-- Users Section -->
-      <div id="admin-users" class="admin-section">
-        <div class="section-header">
-          <div class="section-title">管理者帳號管理</div>
-          <button class="btn btn-sm" onclick="alert('新增管理者（示範）')">＋ 新增帳號</button>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>帳號</th><th>顯示名稱</th><th>狀態</th><th>建立時間</th><th>操作</th></tr></thead>
-            <tbody>
-              <tr>
-                <td><strong>admin</strong></td><td>系統管理員</td>
-                <td><span class="status-tag status-active">啟用</span></td>
-                <td style="font-size:12px;color:var(--ink-3)">2026/01/01</td>
-                <td><button class="btn btn-outline btn-sm">編輯</button></td>
-              </tr>
-              <tr>
-                <td>hr_manager</td><td>人資主管</td>
-                <td><span class="status-tag status-active">啟用</span></td>
-                <td style="font-size:12px;color:var(--ink-3)">2026/02/15</td>
-                <td><button class="btn btn-outline btn-sm">編輯</button></td>
-              </tr>
-              <tr>
-                <td>it_staff</td><td>IT 人員</td>
-                <td><span class="status-tag status-ended">停用</span></td>
-                <td style="font-size:12px;color:var(--ink-3)">2026/03/01</td>
-                <td><button class="btn btn-outline btn-sm">編輯</button></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>帳號</th><th>顯示名稱</th><th>狀態</th><th>建立時間</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr><td><strong>admin</strong></td><td>系統管理員</td><td><span class="status-tag status-active">啟用</span></td><td style="font-size:12px;color:var(--ink-3)">2026/01/01</td><td><button class="btn btn-outline btn-sm">編輯</button></td></tr>
+            <tr><td>hr_manager</td><td>人資主管</td><td><span class="status-tag status-active">啟用</span></td><td style="font-size:12px;color:var(--ink-3)">2026/02/15</td><td><button class="btn btn-outline btn-sm">編輯</button></td></tr>
+            <tr><td>it_staff</td><td>IT 人員</td><td><span class="status-tag status-ended">停用</span></td><td style="font-size:12px;color:var(--ink-3)">2026/03/01</td><td><button class="btn btn-outline btn-sm">編輯</button></td></tr>
+          </tbody>
+        </table>
       </div>
-
     </div>
+
   </div>
 </div>
 
-<!-- ══════════════ CONFIRM MODAL ══════════════ -->
+<!-- CONFIRM MODAL -->
 <div id="confirm-modal" class="modal-overlay">
   <div class="modal">
-    <div class="modal-title">確認投票</div>
-    <div class="modal-body">確定投給 <strong id="confirm-name"></strong>？<br><span style="font-size:12px;color:var(--ink-3)">送出後無法修改</span></div>
+    <div class="modal-title">確認送出</div>
+    <div class="modal-body" id="confirm-modal-body"></div>
     <div class="modal-actions">
       <button class="btn btn-outline" onclick="closeConfirm()">取消</button>
       <button class="btn" onclick="submitVote()">確認送出</button>
@@ -799,197 +392,323 @@
 </div>
 
 <script>
-// ── STATE ──
-let captchaCode = '';
-let adminCaptchaCode = '';
-let selectedCandidate = null;
-let currentActivity = '';
-let fromMultiActivity = false;
+// ─── DATA ───
+const ACTIVITIES = [
+  { id:0, code:'VOTE-20260416-0001', name:'2026 模範員工票選',
+    desc:'表彰年度表現最優異的員工，由全體同仁票選決定。',
+    start:'2026/05/01', end:'2026/05/03', status:'active', totalVoters:100,
+    candidates:[
+      {id:'c1',name:'王小明',emoji:'👨‍💼',desc:'資深工程師，帶領多項關鍵系統上線。',votes:30},
+      {id:'c2',name:'林美華',emoji:'👩‍🏫',desc:'人資主管，致力員工福祉，獲一致好評。',votes:18},
+      {id:'c3',name:'陳建宏',emoji:'👨‍🔬',desc:'研發主力，專利發明人，推動跨部門合作。',votes:10},
+      {id:'c4',name:'張雅婷',emoji:'👩‍💼',desc:'業務總監，連續三年達成業績目標。',votes:7},
+    ]},
+  { id:1, code:'VOTE-20260416-0002', name:'2026 最佳創新獎',
+    desc:'鼓勵提出創新方案並落地執行的同仁。',
+    start:'2026/05/01', end:'2026/05/05', status:'active', totalVoters:100,
+    candidates:[
+      {id:'d1',name:'劉俊豪',emoji:'👨‍🚀',desc:'AI 流程自動化提案人，節省大量人工作業。',votes:22},
+      {id:'d2',name:'吳欣怡',emoji:'👩‍🎨',desc:'設計系統推動者，統一品牌視覺規範。',votes:15},
+      {id:'d3',name:'鄭文傑',emoji:'🧑‍💻',desc:'開源工具貢獻者，提升整體開發效率。',votes:8},
+    ]},
+  { id:2, code:'VOTE-20260101-0001', name:'2026 年度最佳部門',
+    desc:'', start:'2026/01/10', end:'2026/01/15', status:'ended', totalVoters:120,
+    candidates:[
+      {id:'e1',name:'技術研發部',emoji:'⚙️',desc:'',votes:42},
+      {id:'e2',name:'業務拓展部',emoji:'📈',desc:'',votes:31},
+      {id:'e3',name:'客戶服務部',emoji:'🤝',desc:'',votes:25},
+    ]},
+];
 
-// ── CAPTCHA ──
-function genCode() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  return Array.from({length: 4}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-}
-function refreshCaptcha() {
-  captchaCode = genCode();
-  document.getElementById('captcha-display').textContent = captchaCode;
-}
-function refreshAdminCaptcha() {
-  adminCaptchaCode = genCode();
-  document.getElementById('admin-captcha-display').textContent = adminCaptchaCode;
-}
+const DETAIL_DATA = [
+  {total:100,voted:65,notVoted:35,rate:'65%',
+   rows:[{rank:'🥇',name:'王小明',votes:30,pct:'46.2%'},{rank:'🥈',name:'林美華',votes:18,pct:'27.7%'},{rank:'🥉',name:'陳建宏',votes:10,pct:'15.4%'},{rank:'4',name:'張雅婷',votes:7,pct:'10.8%'}],
+   pie:[{label:'王小明',value:30,color:'#1a5c3a'},{label:'林美華',value:18,color:'#2e8b57'},{label:'陳建宏',value:10,color:'#52b788'},{label:'張雅婷',value:7,color:'#95d5b2'}]},
+  {total:100,voted:45,notVoted:55,rate:'45%',
+   rows:[{rank:'🥇',name:'劉俊豪',votes:22,pct:'48.9%'},{rank:'🥈',name:'吳欣怡',votes:15,pct:'33.3%'},{rank:'🥉',name:'鄭文傑',votes:8,pct:'17.8%'}],
+   pie:[{label:'劉俊豪',value:22,color:'#1a5c3a'},{label:'吳欣怡',value:15,color:'#2e8b57'},{label:'鄭文傑',value:8,color:'#52b788'}]},
+  {total:120,voted:98,notVoted:22,rate:'81.7%',
+   rows:[{rank:'🥇',name:'技術研發部',votes:42,pct:'42.9%'},{rank:'🥈',name:'業務拓展部',votes:31,pct:'31.6%'},{rank:'🥉',name:'客戶服務部',votes:25,pct:'25.5%'}],
+   pie:[{label:'技術研發部',value:42,color:'#1a5c3a'},{label:'業務拓展部',value:31,color:'#2e8b57'},{label:'客戶服務部',value:25,color:'#52b788'}]},
+];
 
-// ── SCREEN ──
-function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-}
+// ─── STATE ───
+let captchaCode='', adminCaptchaCode='';
+let votedMap={};      // activityId → candidateId
+let selectedMap={};   // activityId → candidateId
 
-// ── LOGIN ──
-function doLogin() {
-  const no = document.getElementById('emp-no').value.trim();
-  const birth = document.getElementById('emp-birth').value.trim();
-  const cap = document.getElementById('emp-captcha').value.trim().toUpperCase();
-  const err = document.getElementById('login-error');
+function genCode(){const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';return Array.from({length:4},()=>c[Math.floor(Math.random()*c.length)]).join('');}
+function refreshCaptcha(){captchaCode=genCode();document.getElementById('captcha-display').textContent=captchaCode;}
+function refreshAdminCaptcha(){adminCaptchaCode=genCode();document.getElementById('admin-captcha-display').textContent=adminCaptchaCode;}
 
-  if (!no || !birth || !cap) { err.textContent = '請填寫所有欄位。'; err.classList.add('show'); return; }
-  if (cap !== captchaCode) { err.textContent = '驗證碼錯誤，請重新輸入。'; err.classList.add('show'); refreshCaptcha(); return; }
-  if (no !== '1233C00' || birth !== '19900115') { err.textContent = '工號或生日有誤，或您不在任何有效活動名單中。'; err.classList.add('show'); refreshCaptcha(); return; }
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+function showErr(el,msg){el.textContent=msg;el.classList.add('show');}
+
+// ─── LOGIN ───
+function doLogin(){
+  const no=document.getElementById('emp-no').value.trim();
+  const birth=document.getElementById('emp-birth').value.trim();
+  const cap=document.getElementById('emp-captcha').value.trim().toUpperCase();
+  const err=document.getElementById('login-error');
+  if(!no||!birth||!cap){showErr(err,'請填寫所有欄位。');return;}
+  if(cap!==captchaCode){showErr(err,'驗證碼錯誤，請重試。');refreshCaptcha();return;}
+
+  let userType=null;
+  if(no==='1233C00'&&birth==='19900115') userType='A';
+  else if(no==='1233C99'&&birth==='19850101') userType='B';
+  if(!userType){showErr(err,'工號或生日有誤，或您不在任何有效活動名單中。');refreshCaptcha();return;}
 
   err.classList.remove('show');
-  fromMultiActivity = true;
-  showScreen('screen-activities');
+  selectedMap={};
+  votedMap = userType==='B' ? {0:'c1',1:'d1'} : {};
+  renderHub();
+  showScreen('screen-hub');
 }
 
-function doAdminLogin() {
-  const acc = document.getElementById('admin-account').value.trim();
-  const pwd = document.getElementById('admin-password').value;
-  const cap = document.getElementById('admin-captcha').value.trim().toUpperCase();
-  const err = document.getElementById('admin-login-error');
-
-  if (!acc || !pwd || !cap) { err.textContent = '請填寫所有欄位。'; err.classList.add('show'); return; }
-  if (cap !== adminCaptchaCode) { err.textContent = '驗證碼錯誤。'; err.classList.add('show'); refreshAdminCaptcha(); return; }
-  if (acc !== 'admin' || pwd !== 'Admin@123') { err.textContent = '帳號或密碼有誤。'; err.classList.add('show'); refreshAdminCaptcha(); return; }
-
+function doAdminLogin(){
+  const acc=document.getElementById('admin-account').value.trim();
+  const pwd=document.getElementById('admin-password').value;
+  const cap=document.getElementById('admin-captcha').value.trim().toUpperCase();
+  const err=document.getElementById('admin-login-error');
+  if(!acc||!pwd||!cap){showErr(err,'請填寫所有欄位。');return;}
+  if(cap!==adminCaptchaCode){showErr(err,'驗證碼錯誤。');refreshAdminCaptcha();return;}
+  if(acc!=='admin'||pwd!=='Admin@123'){showErr(err,'帳號或密碼有誤。');refreshAdminCaptcha();return;}
   err.classList.remove('show');
   showScreen('screen-admin');
-  setTimeout(() => {
-    drawPie('pie-chart', 'pie-legend', [
-      {label:'王小明', value:30, color:'#1a5c3a'},
-      {label:'林美華', value:18, color:'#2e8b57'},
-      {label:'陳建宏', value:10, color:'#52b788'},
-      {label:'張雅婷', value:7, color:'#95d5b2'},
-    ]);
-    drawPie('pie-chart-2', 'pie-legend-2', [
-      {label:'技術研發部', value:42, color:'#1a5c3a'},
-      {label:'業務拓展部', value:31, color:'#2e8b57'},
-      {label:'客戶服務部', value:25, color:'#52b788'},
-    ]);
-  }, 100);
 }
 
-function doLogout() {
-  selectedCandidate = null;
-  document.querySelectorAll('.candidate-card').forEach(c => c.classList.remove('selected'));
-  document.getElementById('emp-no').value = '';
-  document.getElementById('emp-birth').value = '';
-  document.getElementById('emp-captcha').value = '';
+function doLogout(){
+  votedMap={};selectedMap={};
+  document.getElementById('emp-no').value='';
+  document.getElementById('emp-birth').value='';
+  document.getElementById('emp-captcha').value='';
   refreshCaptcha();
   showScreen('screen-login');
 }
 
-// ── VOTE FLOW ──
-function enterVote(activityName, hasVoted) {
-  currentActivity = activityName;
-  document.getElementById('vote-activity-name').textContent = activityName;
-  document.getElementById('vote-header-title').textContent = activityName;
-  if (hasVoted) {
-    document.getElementById('voted-sub-text').textContent = '您已完成「' + activityName + '」的投票。';
-    showScreen('screen-voted');
+// ─── HUB RENDER ───
+function renderHub(){
+  const acts=ACTIVITIES.slice(0,2);
+  const allVoted=acts.every(a=>votedMap[a.id]!=null);
+
+  document.getElementById('hub-nav-title').textContent=allVoted?'投票結果':'投票活動';
+  document.getElementById('hub-heading').textContent=allVoted?'感謝您完成所有投票！':'您有以下投票活動';
+  document.getElementById('hub-sub').textContent=allVoted
+    ?'以下為各活動的即時得票佔比'
+    :'請在每個活動中選擇一位候選人，確認後送出投票';
+  document.getElementById('all-voted-banner').style.display=allVoted?'flex':'none';
+
+  const container=document.getElementById('hub-activities');
+  container.innerHTML='';
+
+  acts.forEach(act=>{
+    const hasVoted=votedMap[act.id]!=null;
+    const block=document.createElement('div');
+    block.className='activity-block';
+
+    // Header
+    block.innerHTML=`
+      <div class="activity-block-header">
+        <div class="abh-left">
+          <div class="abh-name">${act.name}</div>
+          ${act.desc?`<div class="abh-desc">${act.desc}</div>`:''}
+          <div class="abh-meta">${act.code} · ${act.start} — ${act.end}</div>
+        </div>
+        <span class="badge ${hasVoted?'badge-voted':'badge-active'}">${hasVoted?'已投票':'進行中'}</span>
+      </div>
+    `;
+
+    if(hasVoted){
+      // Voted confirmation row
+      const vRow=document.createElement('div');
+      vRow.className='voted-row';
+      vRow.innerHTML=`<div class="voted-check">✓</div><div style="font-size:14px"><strong>您已完成此活動的投票</strong></div>`;
+      block.appendChild(vRow);
+      // Result bars
+      appendResultBars(block,act);
+    } else {
+      // Candidate grid
+      const grid=document.createElement('div');
+      grid.className='activity-candidates';
+      act.candidates.forEach(c=>{
+        const card=document.createElement('div');
+        card.className='candidate-card'+(selectedMap[act.id]===c.id?' selected':'');
+        card.innerHTML=`
+          <div class="cand-avatar">${c.emoji}</div>
+          <div class="cand-info">
+            <div class="cand-name">${c.name}</div>
+            ${c.desc?`<div class="cand-desc">${c.desc}</div>`:''}
+          </div>`;
+        card.onclick=()=>selectCandidate(act.id,c.id);
+        grid.appendChild(card);
+      });
+      block.appendChild(grid);
+    }
+
+    container.appendChild(block);
+  });
+
+  updateHubFooter(acts);
+}
+
+function appendResultBars(block,act){
+  const total=act.candidates.reduce((s,c)=>s+c.votes,0);
+  if(!total) return;
+  const wrap=document.createElement('div');
+  wrap.className='result-bar-wrap';
+  wrap.innerHTML=`<div class="rb-header"><span>得票佔比</span><span>共 ${total} 票</span></div>`
+    +act.candidates.map(c=>{
+      const pct=Math.round(c.votes/total*100);
+      return `<div class="rb-row">
+        <div class="rb-name" title="${c.name}">${c.name}</div>
+        <div class="rb-track"><div class="rb-fill" style="width:0%" data-pct="${pct}"></div></div>
+        <div class="rb-pct">${pct}%</div>
+      </div>`;
+    }).join('');
+  block.appendChild(wrap);
+  setTimeout(()=>{wrap.querySelectorAll('.rb-fill').forEach(el=>el.style.width=el.dataset.pct+'%');},60);
+}
+
+function selectCandidate(actId,candId){
+  selectedMap[actId]=candId;
+  renderHub();
+}
+
+function updateHubFooter(acts){
+  const pending=acts.filter(a=>votedMap[a.id]==null); // activities not yet voted
+  const footer=document.getElementById('hub-footer');
+  const btn=document.getElementById('hub-submit-btn');
+  const hint=document.getElementById('hub-footer-hint');
+
+  if(pending.length===0){footer.classList.remove('visible');return;}
+
+  const selected=pending.filter(a=>selectedMap[a.id]!=null);
+  footer.classList.add('visible');
+
+  if(selected.length===0){
+    btn.disabled=true;
+    hint.textContent='請先為每個活動選擇一位候選人';
+  } else if(selected.length<pending.length){
+    btn.disabled=false;
+    const unselNames=pending.filter(a=>!selectedMap[a.id]).map(a=>a.name).join('、');
+    hint.textContent=`尚未選擇：${unselNames}`;
   } else {
-    showScreen('screen-vote');
+    btn.disabled=false;
+    hint.textContent='';
   }
 }
 
-function goBack() {
-  if (fromMultiActivity) showScreen('screen-activities');
-  else doLogout();
-}
-
-function selectCandidate(el, name) {
-  document.querySelectorAll('.candidate-card').forEach(c => c.classList.remove('selected'));
-  el.classList.add('selected');
-  selectedCandidate = name;
-}
-
-function openConfirm() {
-  if (!selectedCandidate) { alert('請先選擇一位候選人'); return; }
-  document.getElementById('confirm-name').textContent = selectedCandidate;
+function openBulkConfirm(){
+  const acts=ACTIVITIES.slice(0,2).filter(a=>votedMap[a.id]==null&&selectedMap[a.id]!=null);
+  if(!acts.length) return;
+  const lines=acts.map(a=>{
+    const cand=a.candidates.find(c=>c.id===selectedMap[a.id]);
+    return `<div style="padding:8px 0;border-bottom:1px solid var(--border);last-child{border:none}"><span style="font-size:12px;color:var(--ink-3)">${a.name}</span><br><strong>${cand.name}</strong></div>`;
+  }).join('');
+  document.getElementById('confirm-modal-body').innerHTML=
+    `<div style="margin-bottom:8px">確定送出以下投票？</div>${lines}<div style="margin-top:12px;font-size:12px;color:var(--ink-3)">送出後無法修改</div>`;
   document.getElementById('confirm-modal').classList.add('show');
 }
 
-function closeConfirm() {
-  document.getElementById('confirm-modal').classList.remove('show');
-}
+function closeConfirm(){document.getElementById('confirm-modal').classList.remove('show');}
 
-function submitVote() {
+function submitVote(){
+  const acts=ACTIVITIES.slice(0,2).filter(a=>votedMap[a.id]==null&&selectedMap[a.id]!=null);
+  acts.forEach(act=>{
+    const candId=selectedMap[act.id];
+    votedMap[act.id]=candId;
+    act.candidates.find(c=>c.id===candId).votes+=1;
+  });
   closeConfirm();
-  document.getElementById('voted-sub-text').textContent = '您已完成「' + currentActivity + '」的投票。';
-  showScreen('screen-voted');
+  renderHub();
 }
 
-// ── ADMIN ──
-function switchAdminSection(id, btn) {
-  document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
-  document.getElementById('admin-' + id).classList.add('active');
-  document.querySelectorAll('.nav-switch-btn').forEach(b => b.classList.remove('active'));
+// ─── ADMIN ───
+function switchAdminSection(id,btn){
+  document.querySelectorAll('.admin-section').forEach(s=>s.classList.remove('active'));
+  document.getElementById('admin-'+id).classList.add('active');
+  document.querySelectorAll('.nav-switch-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  if (id === 'result') {
-    setTimeout(() => drawPie('pie-chart-2', 'pie-legend-2', [
-      {label:'技術研發部', value:42, color:'#1a5c3a'},
-      {label:'業務拓展部', value:31, color:'#2e8b57'},
-      {label:'客戶服務部', value:25, color:'#52b788'},
-    ]), 50);
-  }
+  closeActivityDetail();
 }
 
-function showActivityDetail() {
-  document.getElementById('activity-detail').style.display = 'block';
+function showActivityDetail(idx){
+  const act=ACTIVITIES[idx];
+  const det=DETAIL_DATA[idx];
+  document.getElementById('detail-name').textContent=act.name;
+  const badge=document.getElementById('detail-badge');
+  badge.textContent=act.status==='active'?'進行中':'已結束';
+  badge.className='status-tag '+(act.status==='active'?'status-active':'status-ended');
+
+  // Basic tab — editable name + desc
+  document.getElementById('basic-content').innerHTML=`
+    <div class="table-wrap" style="max-width:520px">
+      <table>
+        <tr><th style="width:110px">活動名稱</th><td><input type="text" value="${act.name}" style="border:none;background:transparent;padding:0;font-size:14px;font-weight:600;width:100%"></td></tr>
+        <tr><th>說明</th><td><textarea rows="2" style="border:none;background:transparent;padding:0;font-size:13px;width:100%;line-height:1.5">${act.desc||''}</textarea></td></tr>
+        <tr><th>活動代號</th><td style="font-family:'DM Mono',monospace;font-size:13px;color:var(--ink-3)">${act.code}</td></tr>
+        <tr><th>開始時間</th><td>${act.start} 09:00</td></tr>
+        <tr><th>結束時間</th><td>${act.end} 18:00</td></tr>
+        <tr><th>狀態</th><td><span class="status-tag ${act.status==='active'?'status-active':'status-ended'}">${act.status==='active'?'進行中':'已結束'}</span></td></tr>
+        <tr><th>建立時間</th><td style="font-size:13px;color:var(--ink-3)">2026/04/16 10:22</td></tr>
+        <tr><th>建立人</th><td>admin</td></tr>
+      </table>
+    </div>
+    <div style="margin-top:14px"><button class="btn btn-sm" onclick="alert('已儲存（示範）')">儲存變更</button></div>`;
+
+  // Result tab
+  document.getElementById('res-total').textContent=det.total;
+  document.getElementById('res-voted').textContent=det.voted;
+  document.getElementById('res-not').textContent=det.notVoted;
+  document.getElementById('res-rate').textContent=det.rate;
+  document.getElementById('res-table').innerHTML=det.rows.map(r=>`<tr><td>${r.rank}</td><td><strong>${r.name}</strong></td><td>${r.votes}</td><td>${r.pct}</td></tr>`).join('');
+
+  // Reset tabs
+  document.querySelectorAll('#activity-detail .tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('#activity-detail .tab-pane').forEach(p=>p.classList.remove('active'));
+  document.querySelector('#activity-detail .tab-nav .tab-btn').classList.add('active');
+  document.getElementById('tab-basic').classList.add('active');
+
+  document.getElementById('activity-detail').dataset.idx=idx;
+  document.getElementById('activity-detail').style.display='block';
   document.getElementById('activity-detail').scrollIntoView({behavior:'smooth'});
 }
 
-function switchTab(btn, paneId) {
-  btn.closest('.tab-nav').querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+function closeActivityDetail(){document.getElementById('activity-detail').style.display='none';}
+
+function switchTab(btn,paneId){
+  const nav=btn.closest('.tab-nav');
+  nav.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  const parent = btn.closest('.admin-section') || btn.closest('#activity-detail');
-  parent.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('#activity-detail .tab-pane').forEach(p=>p.classList.remove('active'));
   document.getElementById(paneId).classList.add('active');
-  if (paneId === 'tab-results') {
-    setTimeout(() => drawPie('pie-chart', 'pie-legend', [
-      {label:'王小明', value:30, color:'#1a5c3a'},
-      {label:'林美華', value:18, color:'#2e8b57'},
-      {label:'陳建宏', value:10, color:'#52b788'},
-      {label:'張雅婷', value:7, color:'#95d5b2'},
-    ]), 50);
+  if(paneId==='tab-results'){
+    const idx=parseInt(document.getElementById('activity-detail').dataset.idx||'0');
+    setTimeout(()=>drawPie('pie-chart','pie-legend',DETAIL_DATA[idx].pie),50);
   }
 }
 
-function doImport() {
-  document.getElementById('import-result').classList.add('show');
-}
+function doImport(){document.getElementById('import-result').classList.add('show');}
 
-// ── PIE CHART ──
-function drawPie(canvasId, legendId, data) {
-  const canvas = document.getElementById(canvasId);
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  const total = data.reduce((s, d) => s + d.value, 0);
-  const cx = 90, cy = 90, r = 75;
-  ctx.clearRect(0, 0, 180, 180);
-  let startAngle = -Math.PI / 2;
-  data.forEach(d => {
-    const slice = (d.value / total) * 2 * Math.PI;
-    ctx.beginPath();
-    ctx.moveTo(cx, cy);
-    ctx.arc(cx, cy, r, startAngle, startAngle + slice);
-    ctx.closePath();
-    ctx.fillStyle = d.color;
-    ctx.fill();
-    ctx.strokeStyle = 'white';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    startAngle += slice;
+function drawPie(canvasId,legendId,data){
+  const canvas=document.getElementById(canvasId);
+  if(!canvas) return;
+  const ctx=canvas.getContext('2d');
+  const total=data.reduce((s,d)=>s+d.value,0);
+  ctx.clearRect(0,0,180,180);
+  let a=-Math.PI/2;
+  data.forEach(d=>{
+    const s=(d.value/total)*2*Math.PI;
+    ctx.beginPath();ctx.moveTo(90,90);ctx.arc(90,90,75,a,a+s);ctx.closePath();
+    ctx.fillStyle=d.color;ctx.fill();
+    ctx.strokeStyle='white';ctx.lineWidth=2;ctx.stroke();
+    a+=s;
   });
-  const legend = document.getElementById(legendId);
-  if (legend) {
-    legend.innerHTML = data.map(d =>
-      `<div class="legend-item"><div class="legend-dot" style="background:${d.color}"></div>${d.label} — <strong>${d.value} 票</strong> (${Math.round(d.value/total*100)}%)</div>`
-    ).join('');
-  }
+  const leg=document.getElementById(legendId);
+  if(leg) leg.innerHTML=data.map(d=>`<div class="legend-item"><div class="legend-dot" style="background:${d.color}"></div>${d.label} — <strong>${d.value} 票</strong> (${Math.round(d.value/total*100)}%)</div>`).join('');
 }
 
-// ── INIT ──
+// ─── INIT ───
 refreshCaptcha();
 refreshAdminCaptcha();
 </script>
