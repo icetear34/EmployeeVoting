@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>員工投票系統</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #111111;
+    --ink-2: #444444;
+    --ink-3: #888888;
+    --paper: #fafaf8;
+    --paper-2: #f2f2ee;
+    --border: #e0e0d8;
+    --accent: #1a5c3a;
+    --accent-light: #e8f4ee;
+    --accent-hover: #144a2f;
+    --danger: #c0392b;
+    --warn: #e67e22;
+    --radius: 10px;
+    --shadow: 0 2px 12px rgba(0,0,0,0.07);
+    --shadow-md: 0 6px 32px rgba(0,0,0,0.12);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans TC', sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    min-height: 100vh;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  /* ─── SCREEN SYSTEM ─── */
+  .screen { display: none; min-height: 100vh; animation: fadeIn 0.3s ease; }
+  .screen.active { display: flex; flex-direction: column; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ─── TOPBAR ─── */
+  .topbar {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(250,250,248,0.92);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .topbar-logo {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px; font-weight: 500;
+    color: var(--ink-3);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .topbar-title { font-size: 15px; font-weight: 500; }
+  .topbar-action {
+    font-size: 13px; color: var(--ink-3);
+    background: none; border: none; cursor: pointer;
+    padding: 4px 10px; border-radius: 6px;
+    transition: background 0.15s;
+  }
+  .topbar-action:hover { background: var(--paper-2); }
+
+  /* ─── CENTERED CARD ─── */
+  .center-wrap {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    padding: 40px 20px;
+  }
+  .card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: var(--shadow-md);
+    padding: 40px;
+    width: 100%; max-width: 420px;
+  }
+  .card-title {
+    font-size: 22px; font-weight: 700;
+    margin-bottom: 4px; color: var(--ink);
+  }
+  .card-subtitle {
+    font-size: 13px; color: var(--ink-3);
+    margin-bottom: 28px;
+  }
+
+  /* ─── FORM ─── */
+  .form-group { margin-bottom: 18px; }
+  label {
+    display: block; font-size: 13px; font-weight: 500;
+    color: var(--ink-2); margin-bottom: 6px;
+  }
+  input[type="text"], input[type="password"] {
+    width: 100%; padding: 10px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    font-family: inherit; font-size: 15px;
+    background: var(--paper); color: var(--ink);
+    outline: none; transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(26,92,58,0.12);
+    background: white;
+  }
+
+  /* Captcha row */
+  .captcha-row { display: flex; gap: 10px; align-items: stretch; }
+  .captcha-row input { flex: 1; }
+  .captcha-box {
+    background: var(--paper-2);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 8px 16px;
+    font-family: 'DM Mono', monospace;
+    font-size: 20px; font-weight: 500;
+    letter-spacing: 0.2em;
+    color: var(--ink);
+    cursor: pointer; user-select: none;
+    transition: background 0.15s;
+    display: flex; align-items: center;
+  }
+  .captcha-box:hover { background: #e8e8e2; }
+
+  /* ─── BUTTONS ─── */
+  .btn {
+    display: block; width: 100%;
+    padding: 13px 20px;
+    background: var(--accent); color: white;
+    border: none; border-radius: var(--radius);
+    font-family: inherit; font-size: 15px; font-weight: 500;
+    cursor: pointer; transition: background 0.15s, transform 0.1s;
+    text-align: center;
+  }
+  .btn:hover { background: var(--accent-hover); }
+  .btn:active { transform: scale(0.98); }
+  .btn-outline {
+    background: white; color: var(--ink);
+    border: 1.5px solid var(--border);
+  }
+  .btn-outline:hover { background: var(--paper-2); }
+  .btn-sm {
+    width: auto; padding: 7px 16px;
+    font-size: 13px; border-radius: 7px;
+  }
+  .btn-danger { background: var(--danger); }
+  .btn-danger:hover { background: #a93226; }
+
+  /* ─── ERROR BANNER ─── */
+  .error-banner {
+    background: #fdf0ee;
+    border: 1px solid #f0c0bb;
+    color: var(--danger);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    margin-bottom: 18px;
+    display: none;
+  }
+  .error-banner.show { display: block; }
+
+  /* ─── ACTIVITY SELECT ─── */
+  .page-content { flex: 1; padding: 32px 24px; max-width: 600px; margin: 0 auto; width: 100%; }
+  .page-heading { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  .page-sub { font-size: 13px; color: var(--ink-3); margin-bottom: 24px; }
+
+  .activity-card {
+    background: white; border: 1.5px solid var(--border);
+    border-radius: 12px; padding: 20px 22px;
+    margin-bottom: 12px; cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s, transform 0.12s;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .activity-card:hover { border-color: var(--accent); box-shadow: 0 2px 16px rgba(26,92,58,0.1); transform: translateY(-1px); }
+  .activity-name { font-size: 16px; font-weight: 600; margin-bottom: 3px; }
+  .activity-meta { font-size: 12px; color: var(--ink-3); font-family: 'DM Mono', monospace; }
+  .badge {
+    font-size: 11px; font-weight: 500; font-family: 'DM Mono', monospace;
+    padding: 4px 10px; border-radius: 20px;
+    letter-spacing: 0.04em;
+  }
+  .badge-active { background: var(--accent-light); color: var(--accent); }
+
+  /* ─── VOTING PAGE ─── */
+  .vote-header {
+    background: white;
+    border-bottom: 1px solid var(--border);
+    padding: 20px 24px;
+  }
+  .vote-header h1 { font-size: 18px; font-weight: 700; }
+  .vote-header p { font-size: 13px; color: var(--ink-3); margin-top: 2px; }
+
+  .candidates-grid {
+    flex: 1; padding: 24px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+    align-content: start;
+    max-width: 760px; margin: 0 auto; width: 100%;
+  }
+
+  .candidate-card {
+    background: white;
+    border: 2px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden; cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s, transform 0.12s;
+    position: relative;
+  }
+  .candidate-card:hover { border-color: var(--accent); box-shadow: 0 4px 20px rgba(26,92,58,0.12); transform: translateY(-2px); }
+  .candidate-card.selected {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(26,92,58,0.15), 0 4px 20px rgba(26,92,58,0.12);
+  }
+  .candidate-card.selected::after {
+    content: '✓';
+    position: absolute; top: 10px; right: 10px;
+    width: 24px; height: 24px;
+    background: var(--accent); color: white;
+    border-radius: 50%; font-size: 13px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    line-height: 24px; text-align: center;
+  }
+  .candidate-avatar {
+    width: 100%; aspect-ratio: 1;
+    object-fit: cover; display: block;
+    background: var(--paper-2);
+  }
+  .candidate-avatar-placeholder {
+    width: 100%; aspect-ratio: 1;
+    background: linear-gradient(135deg, var(--paper-2), var(--border));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 40px;
+  }
+  .candidate-info { padding: 14px; }
+  .candidate-name { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .candidate-desc { font-size: 12px; color: var(--ink-3); line-height: 1.5; }
+
+  /* ─── STICKY VOTE BTN ─── */
+  .vote-footer {
+    position: sticky; bottom: 0;
+    background: rgba(250,250,248,0.95);
+    backdrop-filter: blur(8px);
+    border-top: 1px solid var(--border);
+    padding: 16px 24px;
+  }
+  .vote-footer .btn { max-width: 760px; margin: 0 auto; }
+
+  /* ─── VOTED STATE ─── */
+  .voted-wrap {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 40px 24px; text-align: center;
+  }
+  .voted-icon {
+    width: 72px; height: 72px;
+    background: var(--accent-light);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 32px; margin-bottom: 20px;
+    animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  @keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .voted-title { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+  .voted-sub { font-size: 14px; color: var(--ink-3); max-width: 280px; }
+
+  /* ─── MODAL ─── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.4);
+    backdrop-filter: blur(3px);
+    z-index: 200; display: none;
+    align-items: center; justify-content: center;
+    padding: 20px;
+    animation: fadeIn 0.2s ease;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: white; border-radius: 16px;
+    padding: 32px; max-width: 360px; width: 100%;
+    box-shadow: var(--shadow-md);
+    animation: slideUp 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 10px; }
+  .modal-body { font-size: 14px; color: var(--ink-2); margin-bottom: 24px; line-height: 1.6; }
+  .modal-body strong { color: var(--ink); }
+  .modal-actions { display: flex; gap: 10px; }
+  .modal-actions .btn { flex: 1; }
+
+  /* ─── ADMIN PANEL ─── */
+  .admin-layout { flex: 1; display: flex; }
+  .admin-sidebar {
+    width: 220px; background: var(--ink);
+    color: white; padding: 24px 0;
+    flex-shrink: 0;
+  }
+  .sidebar-logo {
+    padding: 0 20px 20px;
+    font-size: 13px; font-family: 'DM Mono', monospace;
+    color: rgba(255,255,255,0.4); letter-spacing: 0.1em; text-transform: uppercase;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    margin-bottom: 12px;
+  }
+  .sidebar-nav-item {
+    padding: 10px 20px; font-size: 14px; cursor: pointer;
+    color: rgba(255,255,255,0.65);
+    transition: background 0.15s, color 0.15s;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .sidebar-nav-item:hover { background: rgba(255,255,255,0.07); color: white; }
+  .sidebar-nav-item.active { background: rgba(255,255,255,0.12); color: white; font-weight: 500; }
+  .sidebar-icon { font-size: 16px; width: 20px; text-align: center; }
+
+  .admin-main { flex: 1; overflow-y: auto; padding: 32px; }
+  .admin-section { display: none; }
+  .admin-section.active { display: block; animation: fadeIn 0.25s ease; }
+
+  .section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 24px;
+  }
+  .section-title { font-size: 20px; font-weight: 700; }
+
+  /* ─── TABLE ─── */
+  .table-wrap { background: white; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    text-align: left; padding: 12px 16px;
+    font-size: 12px; font-weight: 600; color: var(--ink-3);
+    letter-spacing: 0.06em; text-transform: uppercase;
+    background: var(--paper); border-bottom: 1px solid var(--border);
+  }
+  td { padding: 14px 16px; font-size: 14px; border-bottom: 1px solid var(--border); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--paper); }
+
+  .status-tag {
+    font-size: 11px; padding: 3px 9px;
+    border-radius: 20px; font-weight: 500;
+    font-family: 'DM Mono', monospace;
+  }
+  .status-active { background: var(--accent-light); color: var(--accent); }
+  .status-upcoming { background: #fef4e4; color: var(--warn); }
+  .status-ended { background: #f5f5f5; color: #999; }
+
+  /* ─── STATS CARDS ─── */
+  .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 28px; }
+  .stat-card { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; }
+  .stat-label { font-size: 12px; color: var(--ink-3); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .stat-value { font-size: 28px; font-weight: 700; line-height: 1; }
+  .stat-value.accent { color: var(--accent); }
+
+  /* Pie chart */
+  .chart-wrap { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 24px; }
+  .chart-title { font-size: 15px; font-weight: 600; margin-bottom: 20px; }
+  .pie-container { display: flex; align-items: center; gap: 32px; flex-wrap: wrap; }
+  svg.pie { overflow: visible; }
+  .legend { display: flex; flex-direction: column; gap: 10px; }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+
+  /* DIVIDER */
+  .divider { height: 1px; background: var(--border); margin: 24px 0; }
+
+  /* ─── ADMIN TABS ─── */
+  .tab-nav { display: flex; gap: 2px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
+  .tab-btn {
+    padding: 10px 18px; font-size: 13px; font-weight: 500;
+    color: var(--ink-3); background: none; border: none;
+    cursor: pointer; border-bottom: 2px solid transparent;
+    margin-bottom: -1px; transition: color 0.15s, border-color 0.15s;
+  }
+  .tab-btn:hover { color: var(--ink); }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; animation: fadeIn 0.2s ease; }
+
+  /* NAV SWITCH */
+  .nav-switch {
+    display: flex; gap: 8px; align-items: center;
+    background: var(--paper-2); padding: 4px;
+    border-radius: 10px; border: 1px solid var(--border);
+  }
+  .nav-switch-btn {
+    padding: 6px 14px; font-size: 13px; font-weight: 500;
+    color: var(--ink-3); background: none; border: none;
+    cursor: pointer; border-radius: 7px; transition: all 0.15s;
+  }
+  .nav-switch-btn.active { background: white; color: var(--ink); box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+
+  /* ─── TEXTAREA ─── */
+  textarea {
+    width: 100%; padding: 12px 14px;
+    border: 1.5px solid var(--border); border-radius: var(--radius);
+    font-family: 'DM Mono', monospace; font-size: 13px;
+    background: var(--paper); color: var(--ink);
+    resize: vertical; outline: none;
+    transition: border-color 0.15s;
+  }
+  textarea:focus { border-color: var(--accent); background: white; }
+
+  .import-result {
+    background: var(--accent-light); border: 1px solid #b6ddc8;
+    border-radius: 8px; padding: 14px 16px; font-size: 13px;
+    margin-top: 14px; display: none;
+  }
+  .import-result.show { display: block; }
+
+  /* ─── DEMO HINT ─── */
+  .demo-hint {
+    background: #fffbea; border: 1px solid #fde68a;
+    border-radius: 8px; padding: 10px 14px;
+    font-size: 12px; color: #92400e;
+    margin-bottom: 20px;
+  }
+  .demo-hint strong { color: #78350f; }
+</style>
+</head>
+<body>
+
+<!-- ══════════════ SCREEN 1: EMPLOYEE LOGIN ══════════════ -->
+<div id="screen-login" class="screen active">
+  <nav class="topbar">
+    <span class="topbar-logo">VoteSystem v0.2</span>
+    <span class="topbar-title">員工投票</span>
+    <button class="topbar-action" onclick="showScreen('screen-admin-login')">後台管理</button>
+  </nav>
+  <div class="center-wrap">
+    <div class="card">
+      <div class="card-title">員工登入</div>
+      <div class="card-subtitle">請輸入工號、生日與驗證碼</div>
+      <div class="demo-hint">
+        <strong>示範帳號：</strong>工號 <code>1233C00</code>，生日 <code>19900115</code>，驗證碼點擊查看
+      </div>
+      <div id="login-error" class="error-banner">工號或生日有誤，或您不在任何有效活動名單中。</div>
+      <div class="form-group">
+        <label>工號</label>
+        <input type="text" id="emp-no" placeholder="例：1233C00" maxlength="20">
+      </div>
+      <div class="form-group">
+        <label>生日（8 碼，yyyyMMdd）</label>
+        <input type="text" id="emp-birth" placeholder="例：19900115" maxlength="8">
+      </div>
+      <div class="form-group">
+        <label>驗證碼</label>
+        <div class="captcha-row">
+          <input type="text" id="emp-captcha" placeholder="請輸入右側驗證碼" maxlength="4">
+          <div class="captcha-box" id="captcha-display" onclick="refreshCaptcha()"></div>
+        </div>
+      </div>
+      <button class="btn" onclick="doLogin()">登入</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ SCREEN 2: ACTIVITY SELECT ══════════════ -->
+<div id="screen-activities" class="screen">
+  <nav class="topbar">
+    <span class="topbar-logo">VoteSystem</span>
+    <span class="topbar-title">選擇投票活動</span>
+    <button class="topbar-action" onclick="doLogout()">登出</button>
+  </nav>
+  <div class="page-content">
+    <div class="page-heading">您有以下可參與的投票活動</div>
+    <div class="page-sub">請選擇您要進行投票的活動</div>
+    <div id="activity-list">
+      <div class="activity-card" onclick="enterVote('2026 模範員工票選', false)">
+        <div>
+          <div class="activity-name">2026 模範員工票選</div>
+          <div class="activity-meta">VOTE-20260416-0001 &nbsp;·&nbsp; 2026/05/01 — 2026/05/03</div>
+        </div>
+        <span class="badge badge-active">進行中</span>
+      </div>
+      <div class="activity-card" onclick="enterVote('2026 最佳創新獎', true)">
+        <div>
+          <div class="activity-name">2026 最佳創新獎</div>
+          <div class="activity-meta">VOTE-20260416-0002 &nbsp;·&nbsp; 2026/05/01 — 2026/05/05</div>
+        </div>
+        <span class="badge badge-active">進行中</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ SCREEN 3: VOTE ══════════════ -->
+<div id="screen-vote" class="screen">
+  <nav class="topbar">
+    <span class="topbar-logo">VoteSystem</span>
+    <span class="topbar-title" id="vote-activity-name"></span>
+    <button class="topbar-action" onclick="goBack()">← 返回</button>
+  </nav>
+  <div class="vote-header">
+    <h1 id="vote-header-title"></h1>
+    <p>請選擇一位候選人，確認後送出投票</p>
+  </div>
+  <div class="candidates-grid">
+    <div class="candidate-card" onclick="selectCandidate(this, '王小明')">
+      <div class="candidate-avatar-placeholder">👨‍💼</div>
+      <div class="candidate-info">
+        <div class="candidate-name">王小明</div>
+        <div class="candidate-desc">資深工程師，深耕技術創新十年，帶領多項關鍵系統上線。</div>
+      </div>
+    </div>
+    <div class="candidate-card" onclick="selectCandidate(this, '林美華')">
+      <div class="candidate-avatar-placeholder">👩‍🏫</div>
+      <div class="candidate-info">
+        <div class="candidate-name">林美華</div>
+        <div class="candidate-desc">人資主管，致力於員工福祉與職涯發展，獲同仁一致好評。</div>
+      </div>
+    </div>
+    <div class="candidate-card" onclick="selectCandidate(this, '陳建宏')">
+      <div class="candidate-avatar-placeholder">👨‍🔬</div>
+      <div class="candidate-info">
+        <div class="candidate-name">陳建宏</div>
+        <div class="candidate-desc">研發部門主力，專利發明人，積極推動跨部門合作與知識分享。</div>
+      </div>
+    </div>
+    <div class="candidate-card" onclick="selectCandidate(this, '張雅婷')">
+      <div class="candidate-avatar-placeholder">👩‍💼</div>
+      <div class="candidate-info">
+        <div class="candidate-name">張雅婷</div>
+        <div class="candidate-desc">業務總監，連續三年達成業績目標，擅長客戶關係管理與開發。</div>
+      </div>
+    </div>
+  </div>
+  <div class="vote-footer">
+    <button class="btn" id="submit-btn" onclick="openConfirm()">確認投票</button>
+  </div>
+</div>
+
+<!-- ══════════════ SCREEN 4: VOTED ══════════════ -->
+<div id="screen-voted" class="screen">
+  <nav class="topbar">
+    <span class="topbar-logo">VoteSystem</span>
+    <span class="topbar-title">投票完成</span>
+    <button class="topbar-action" onclick="doLogout()">登出</button>
+  </nav>
+  <div class="voted-wrap">
+    <div class="voted-icon">✓</div>
+    <div class="voted-title">投票已完成</div>
+    <div class="voted-sub" id="voted-sub-text"></div>
+    <div style="margin-top: 12px; font-size: 12px; color: var(--ink-3);">感謝您參與本次投票</div>
+  </div>
+</div>
+
+<!-- ══════════════ SCREEN 5: ADMIN LOGIN ══════════════ -->
+<div id="screen-admin-login" class="screen">
+  <nav class="topbar">
+    <span class="topbar-logo">VoteSystem</span>
+    <span class="topbar-title">後台管理登入</span>
+    <button class="topbar-action" onclick="showScreen('screen-login')">← 員工登入</button>
+  </nav>
+  <div class="center-wrap">
+    <div class="card">
+      <div class="card-title">管理員登入</div>
+      <div class="card-subtitle">請輸入管理者帳號與密碼</div>
+      <div class="demo-hint"><strong>示範帳號：</strong>帳號 <code>admin</code>，密碼 <code>Admin@123</code>，驗證碼點擊查看</div>
+      <div id="admin-login-error" class="error-banner">帳號或密碼有誤。</div>
+      <div class="form-group">
+        <label>帳號</label>
+        <input type="text" id="admin-account" placeholder="輸入管理員帳號">
+      </div>
+      <div class="form-group">
+        <label>密碼</label>
+        <input type="password" id="admin-password" placeholder="輸入密碼">
+      </div>
+      <div class="form-group">
+        <label>驗證碼</label>
+        <div class="captcha-row">
+          <input type="text" id="admin-captcha" placeholder="請輸入右側驗證碼" maxlength="4">
+          <div class="captcha-box" id="admin-captcha-display" onclick="refreshAdminCaptcha()"></div>
+        </div>
+      </div>
+      <button class="btn" onclick="doAdminLogin()">登入</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ SCREEN 6: ADMIN DASHBOARD ══════════════ -->
+<div id="screen-admin" class="screen">
+  <nav class="topbar">
+    <span class="topbar-logo">VoteSystem 後台</span>
+    <div class="nav-switch">
+      <button class="nav-switch-btn active" onclick="switchAdminSection('activities', this)">活動管理</button>
+      <button class="nav-switch-btn" onclick="switchAdminSection('result', this)">開票結果</button>
+      <button class="nav-switch-btn" onclick="switchAdminSection('users', this)">帳號管理</button>
+    </div>
+    <button class="topbar-action" onclick="doLogout()">登出</button>
+  </nav>
+  <div class="admin-layout">
+    <div class="admin-main">
+
+      <!-- Activities Section -->
+      <div id="admin-activities" class="admin-section active">
+        <div class="section-header">
+          <div class="section-title">投票活動管理</div>
+          <button class="btn btn-sm" onclick="alert('新增活動（示範）')">＋ 新增活動</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>活動代號</th>
+                <th>活動名稱</th>
+                <th>開始時間</th>
+                <th>結束時間</th>
+                <th>狀態</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--ink-3)">VOTE-20260416-0001</span></td>
+                <td><strong>2026 模範員工票選</strong></td>
+                <td>2026/05/01 09:00</td>
+                <td>2026/05/03 18:00</td>
+                <td><span class="status-tag status-active">進行中</span></td>
+                <td><button class="btn btn-outline btn-sm" onclick="showActivityDetail()">查看詳情</button></td>
+              </tr>
+              <tr>
+                <td><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--ink-3)">VOTE-20260416-0002</span></td>
+                <td><strong>2026 最佳創新獎</strong></td>
+                <td>2026/05/01 09:00</td>
+                <td>2026/05/05 18:00</td>
+                <td><span class="status-tag status-active">進行中</span></td>
+                <td><button class="btn btn-outline btn-sm" onclick="showActivityDetail()">查看詳情</button></td>
+              </tr>
+              <tr>
+                <td><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--ink-3)">VOTE-20260101-0001</span></td>
+                <td>2026 年度最佳部門</td>
+                <td>2026/01/10 09:00</td>
+                <td>2026/01/15 18:00</td>
+                <td><span class="status-tag status-ended">已結束</span></td>
+                <td><button class="btn btn-outline btn-sm" onclick="switchAdminSection('result', document.querySelectorAll('.nav-switch-btn')[1])">查看開票</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Activity Detail Tabs (hidden by default) -->
+        <div id="activity-detail" style="display:none; margin-top: 28px;">
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
+            <button onclick="document.getElementById('activity-detail').style.display='none'" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--ink-3)">← 返回列表</button>
+            <span style="font-size:16px;font-weight:700">2026 模範員工票選</span>
+            <span class="status-tag status-active">進行中</span>
+          </div>
+          <div class="tab-nav">
+            <button class="tab-btn active" onclick="switchTab(this,'tab-basic')">基本資料</button>
+            <button class="tab-btn" onclick="switchTab(this,'tab-voters')">可投票名單</button>
+            <button class="tab-btn" onclick="switchTab(this,'tab-candidates')">候選人管理</button>
+            <button class="tab-btn" onclick="switchTab(this,'tab-results')">開票頁面</button>
+          </div>
+          <div id="tab-basic" class="tab-pane active">
+            <div class="table-wrap" style="max-width:480px">
+              <table>
+                <tr><th style="width:130px">活動名稱</th><td>2026 模範員工票選</td></tr>
+                <tr><th>活動代號</th><td style="font-family:'DM Mono',monospace;font-size:13px">VOTE-20260416-0001</td></tr>
+                <tr><th>開始時間</th><td>2026/05/01 09:00</td></tr>
+                <tr><th>結束時間</th><td>2026/05/03 18:00</td></tr>
+                <tr><th>狀態</th><td><span class="status-tag status-active">進行中</span></td></tr>
+                <tr><th>建立時間</th><td style="font-size:13px;color:var(--ink-3)">2026/04/16 10:22</td></tr>
+                <tr><th>建立人</th><td>admin</td></tr>
+              </table>
+            </div>
+          </div>
+          <div id="tab-voters" class="tab-pane">
+            <p style="font-size:13px;color:var(--ink-3);margin-bottom:14px">每行格式：工號 生日（例：1233C00 1990/01/15）</p>
+            <textarea rows="6" placeholder="1233C00 1990/01/15&#10;1233C01 1988/06/22&#10;1233C02 1995/03/08"></textarea>
+            <div style="margin-top:12px;display:flex;gap:10px">
+              <button class="btn btn-sm" onclick="doImport()">匯入名單</button>
+            </div>
+            <div id="import-result" class="import-result">
+              ✅ 匯入完成：共 3 筆，成功 3 筆，失敗 0 筆。
+            </div>
+            <div class="divider"></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>工號</th><th>生日</th><th>匯入時間</th></tr></thead>
+                <tbody>
+                  <tr><td>1233C00</td><td style="font-family:'DM Mono',monospace">19900115</td><td style="font-size:12px;color:var(--ink-3)">2026/04/16 10:30</td></tr>
+                  <tr><td>1233C01</td><td style="font-family:'DM Mono',monospace">19880622</td><td style="font-size:12px;color:var(--ink-3)">2026/04/16 10:30</td></tr>
+                  <tr><td>1233C02</td><td style="font-family:'DM Mono',monospace">19950308</td><td style="font-size:12px;color:var(--ink-3)">2026/04/16 10:30</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div id="tab-candidates" class="tab-pane">
+            <div style="margin-bottom:14px"><button class="btn btn-sm" onclick="alert('新增候選人（示範）')">＋ 新增候選人</button></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>排序</th><th>姓名</th><th>介紹</th><th>狀態</th><th>操作</th></tr></thead>
+                <tbody>
+                  <tr><td>1</td><td><strong>王小明</strong></td><td style="font-size:12px;color:var(--ink-3)">資深工程師，帶領多項關鍵系統上線。</td><td><span class="status-tag status-active">啟用</span></td><td><button class="btn btn-outline btn-sm">編輯</button></td></tr>
+                  <tr><td>2</td><td><strong>林美華</strong></td><td style="font-size:12px;color:var(--ink-3)">人資主管，獲同仁一致好評。</td><td><span class="status-tag status-active">啟用</span></td><td><button class="btn btn-outline btn-sm">編輯</button></td></tr>
+                  <tr><td>3</td><td><strong>陳建宏</strong></td><td style="font-size:12px;color:var(--ink-3)">研發部門主力，專利發明人。</td><td><span class="status-tag status-active">啟用</span></td><td><button class="btn btn-outline btn-sm">編輯</button></td></tr>
+                  <tr><td>4</td><td><strong>張雅婷</strong></td><td style="font-size:12px;color:var(--ink-3)">業務總監，連續三年達成業績目標。</td><td><span class="status-tag status-active">啟用</span></td><td><button class="btn btn-outline btn-sm">編輯</button></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div id="tab-results" class="tab-pane">
+            <div class="stats-row">
+              <div class="stat-card"><div class="stat-label">總可投票人數</div><div class="stat-value">100</div></div>
+              <div class="stat-card"><div class="stat-label">已投票</div><div class="stat-value accent">65</div></div>
+              <div class="stat-card"><div class="stat-label">未投票</div><div class="stat-value">35</div></div>
+              <div class="stat-card"><div class="stat-label">投票率</div><div class="stat-value accent">65%</div></div>
+            </div>
+            <div class="chart-wrap">
+              <div class="chart-title">各候選人得票比例</div>
+              <div class="pie-container">
+                <canvas id="pie-chart" width="180" height="180"></canvas>
+                <div class="legend" id="pie-legend"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Result Section -->
+      <div id="admin-result" class="admin-section">
+        <div class="section-header">
+          <div class="section-title">開票結果 — 2026 年度最佳部門</div>
+        </div>
+        <div class="stats-row">
+          <div class="stat-card"><div class="stat-label">總可投票人數</div><div class="stat-value">120</div></div>
+          <div class="stat-card"><div class="stat-label">已投票</div><div class="stat-value accent">98</div></div>
+          <div class="stat-card"><div class="stat-label">未投票</div><div class="stat-value">22</div></div>
+          <div class="stat-card"><div class="stat-label">投票率</div><div class="stat-value accent">81.7%</div></div>
+        </div>
+        <div class="table-wrap" style="margin-bottom:24px">
+          <table>
+            <thead><tr><th>排名</th><th>候選人</th><th>得票數</th><th>得票比例</th></tr></thead>
+            <tbody>
+              <tr><td>🥇 1</td><td><strong>技術研發部</strong></td><td>42</td><td>42.9%</td></tr>
+              <tr><td>🥈 2</td><td><strong>業務拓展部</strong></td><td>31</td><td>31.6%</td></tr>
+              <tr><td>🥉 3</td><td>客戶服務部</td><td>25</td><td>25.5%</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="chart-wrap">
+          <div class="chart-title">得票圓餅圖</div>
+          <div class="pie-container">
+            <canvas id="pie-chart-2" width="180" height="180"></canvas>
+            <div class="legend" id="pie-legend-2"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Users Section -->
+      <div id="admin-users" class="admin-section">
+        <div class="section-header">
+          <div class="section-title">管理者帳號管理</div>
+          <button class="btn btn-sm" onclick="alert('新增管理者（示範）')">＋ 新增帳號</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>帳號</th><th>顯示名稱</th><th>狀態</th><th>建立時間</th><th>操作</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><strong>admin</strong></td><td>系統管理員</td>
+                <td><span class="status-tag status-active">啟用</span></td>
+                <td style="font-size:12px;color:var(--ink-3)">2026/01/01</td>
+                <td><button class="btn btn-outline btn-sm">編輯</button></td>
+              </tr>
+              <tr>
+                <td>hr_manager</td><td>人資主管</td>
+                <td><span class="status-tag status-active">啟用</span></td>
+                <td style="font-size:12px;color:var(--ink-3)">2026/02/15</td>
+                <td><button class="btn btn-outline btn-sm">編輯</button></td>
+              </tr>
+              <tr>
+                <td>it_staff</td><td>IT 人員</td>
+                <td><span class="status-tag status-ended">停用</span></td>
+                <td style="font-size:12px;color:var(--ink-3)">2026/03/01</td>
+                <td><button class="btn btn-outline btn-sm">編輯</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ CONFIRM MODAL ══════════════ -->
+<div id="confirm-modal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-title">確認投票</div>
+    <div class="modal-body">確定投給 <strong id="confirm-name"></strong>？<br><span style="font-size:12px;color:var(--ink-3)">送出後無法修改</span></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeConfirm()">取消</button>
+      <button class="btn" onclick="submitVote()">確認送出</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── STATE ──
+let captchaCode = '';
+let adminCaptchaCode = '';
+let selectedCandidate = null;
+let currentActivity = '';
+let fromMultiActivity = false;
+
+// ── CAPTCHA ──
+function genCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  return Array.from({length: 4}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+}
+function refreshCaptcha() {
+  captchaCode = genCode();
+  document.getElementById('captcha-display').textContent = captchaCode;
+}
+function refreshAdminCaptcha() {
+  adminCaptchaCode = genCode();
+  document.getElementById('admin-captcha-display').textContent = adminCaptchaCode;
+}
+
+// ── SCREEN ──
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ── LOGIN ──
+function doLogin() {
+  const no = document.getElementById('emp-no').value.trim();
+  const birth = document.getElementById('emp-birth').value.trim();
+  const cap = document.getElementById('emp-captcha').value.trim().toUpperCase();
+  const err = document.getElementById('login-error');
+
+  if (!no || !birth || !cap) { err.textContent = '請填寫所有欄位。'; err.classList.add('show'); return; }
+  if (cap !== captchaCode) { err.textContent = '驗證碼錯誤，請重新輸入。'; err.classList.add('show'); refreshCaptcha(); return; }
+  if (no !== '1233C00' || birth !== '19900115') { err.textContent = '工號或生日有誤，或您不在任何有效活動名單中。'; err.classList.add('show'); refreshCaptcha(); return; }
+
+  err.classList.remove('show');
+  fromMultiActivity = true;
+  showScreen('screen-activities');
+}
+
+function doAdminLogin() {
+  const acc = document.getElementById('admin-account').value.trim();
+  const pwd = document.getElementById('admin-password').value;
+  const cap = document.getElementById('admin-captcha').value.trim().toUpperCase();
+  const err = document.getElementById('admin-login-error');
+
+  if (!acc || !pwd || !cap) { err.textContent = '請填寫所有欄位。'; err.classList.add('show'); return; }
+  if (cap !== adminCaptchaCode) { err.textContent = '驗證碼錯誤。'; err.classList.add('show'); refreshAdminCaptcha(); return; }
+  if (acc !== 'admin' || pwd !== 'Admin@123') { err.textContent = '帳號或密碼有誤。'; err.classList.add('show'); refreshAdminCaptcha(); return; }
+
+  err.classList.remove('show');
+  showScreen('screen-admin');
+  setTimeout(() => {
+    drawPie('pie-chart', 'pie-legend', [
+      {label:'王小明', value:30, color:'#1a5c3a'},
+      {label:'林美華', value:18, color:'#2e8b57'},
+      {label:'陳建宏', value:10, color:'#52b788'},
+      {label:'張雅婷', value:7, color:'#95d5b2'},
+    ]);
+    drawPie('pie-chart-2', 'pie-legend-2', [
+      {label:'技術研發部', value:42, color:'#1a5c3a'},
+      {label:'業務拓展部', value:31, color:'#2e8b57'},
+      {label:'客戶服務部', value:25, color:'#52b788'},
+    ]);
+  }, 100);
+}
+
+function doLogout() {
+  selectedCandidate = null;
+  document.querySelectorAll('.candidate-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById('emp-no').value = '';
+  document.getElementById('emp-birth').value = '';
+  document.getElementById('emp-captcha').value = '';
+  refreshCaptcha();
+  showScreen('screen-login');
+}
+
+// ── VOTE FLOW ──
+function enterVote(activityName, hasVoted) {
+  currentActivity = activityName;
+  document.getElementById('vote-activity-name').textContent = activityName;
+  document.getElementById('vote-header-title').textContent = activityName;
+  if (hasVoted) {
+    document.getElementById('voted-sub-text').textContent = '您已完成「' + activityName + '」的投票。';
+    showScreen('screen-voted');
+  } else {
+    showScreen('screen-vote');
+  }
+}
+
+function goBack() {
+  if (fromMultiActivity) showScreen('screen-activities');
+  else doLogout();
+}
+
+function selectCandidate(el, name) {
+  document.querySelectorAll('.candidate-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedCandidate = name;
+}
+
+function openConfirm() {
+  if (!selectedCandidate) { alert('請先選擇一位候選人'); return; }
+  document.getElementById('confirm-name').textContent = selectedCandidate;
+  document.getElementById('confirm-modal').classList.add('show');
+}
+
+function closeConfirm() {
+  document.getElementById('confirm-modal').classList.remove('show');
+}
+
+function submitVote() {
+  closeConfirm();
+  document.getElementById('voted-sub-text').textContent = '您已完成「' + currentActivity + '」的投票。';
+  showScreen('screen-voted');
+}
+
+// ── ADMIN ──
+function switchAdminSection(id, btn) {
+  document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+  document.getElementById('admin-' + id).classList.add('active');
+  document.querySelectorAll('.nav-switch-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if (id === 'result') {
+    setTimeout(() => drawPie('pie-chart-2', 'pie-legend-2', [
+      {label:'技術研發部', value:42, color:'#1a5c3a'},
+      {label:'業務拓展部', value:31, color:'#2e8b57'},
+      {label:'客戶服務部', value:25, color:'#52b788'},
+    ]), 50);
+  }
+}
+
+function showActivityDetail() {
+  document.getElementById('activity-detail').style.display = 'block';
+  document.getElementById('activity-detail').scrollIntoView({behavior:'smooth'});
+}
+
+function switchTab(btn, paneId) {
+  btn.closest('.tab-nav').querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const parent = btn.closest('.admin-section') || btn.closest('#activity-detail');
+  parent.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.getElementById(paneId).classList.add('active');
+  if (paneId === 'tab-results') {
+    setTimeout(() => drawPie('pie-chart', 'pie-legend', [
+      {label:'王小明', value:30, color:'#1a5c3a'},
+      {label:'林美華', value:18, color:'#2e8b57'},
+      {label:'陳建宏', value:10, color:'#52b788'},
+      {label:'張雅婷', value:7, color:'#95d5b2'},
+    ]), 50);
+  }
+}
+
+function doImport() {
+  document.getElementById('import-result').classList.add('show');
+}
+
+// ── PIE CHART ──
+function drawPie(canvasId, legendId, data) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const total = data.reduce((s, d) => s + d.value, 0);
+  const cx = 90, cy = 90, r = 75;
+  ctx.clearRect(0, 0, 180, 180);
+  let startAngle = -Math.PI / 2;
+  data.forEach(d => {
+    const slice = (d.value / total) * 2 * Math.PI;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, r, startAngle, startAngle + slice);
+    ctx.closePath();
+    ctx.fillStyle = d.color;
+    ctx.fill();
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    startAngle += slice;
+  });
+  const legend = document.getElementById(legendId);
+  if (legend) {
+    legend.innerHTML = data.map(d =>
+      `<div class="legend-item"><div class="legend-dot" style="background:${d.color}"></div>${d.label} — <strong>${d.value} 票</strong> (${Math.round(d.value/total*100)}%)</div>`
+    ).join('');
+  }
+}
+
+// ── INIT ──
+refreshCaptcha();
+refreshAdminCaptcha();
+</script>
+</body>
+</html>
