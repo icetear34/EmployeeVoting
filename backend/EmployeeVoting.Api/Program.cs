@@ -1,12 +1,37 @@
-using EmployeeVoting.Api.Infrastructure;
+using EmployeeVoting.Api.Application.Interfaces;
+using EmployeeVoting.Api.Application.Services;
+using EmployeeVoting.Api.Infrastructure.Configuration;
+using EmployeeVoting.Api.Infrastructure.Persistence;
+using EmployeeVoting.Api.Infrastructure.Persistence.Repositories;
+using EmployeeVoting.Api.Infrastructure.Persistence.TypeHandlers;
+using EmployeeVoting.Api.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// 初始化 Dapper TypeHandlers
+DapperTypeHandlers.Initialize();
+
+// 設定 Options Pattern
+builder.Services.Configure<AppSettings>(
+    builder.Configuration.GetSection(AppSettings.SectionName));
 
 // 設定 SQLite 連線
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
     ?? "Data Source=EmployeeVoting.db";
 builder.Services.AddSingleton<IDbConnectionFactory>(new SqliteConnectionFactory(connectionString));
 builder.Services.AddSingleton<DatabaseInitializer>();
+
+// 註冊 Infrastructure Services
+builder.Services.AddSingleton<ICaptchaImageGenerator, CaptchaImageGenerator>();
+
+// 註冊 Repositories
+builder.Services.AddScoped<IAdminUserRepository, AdminUserRepository>();
+builder.Services.AddScoped<ISessionTokenRepository, SessionTokenRepository>();
+builder.Services.AddScoped<ICaptchaSessionRepository, CaptchaSessionRepository>();
+
+// 註冊 Application Services
+builder.Services.AddScoped<ICaptchaService, CaptchaService>();
+builder.Services.AddScoped<IAdminAuthService, AdminAuthService>();
 
 // 加入控制器
 builder.Services.AddControllers();

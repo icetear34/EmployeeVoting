@@ -1,10 +1,10 @@
 using Microsoft.Data.Sqlite;
 using System.Data;
 
-namespace EmployeeVoting.Api.Infrastructure
+namespace EmployeeVoting.Api.Infrastructure.Persistence
 {
     /// <summary>
-    /// SQLite 資料庫連線工廠
+    /// 資料庫連線工廠介面
     /// </summary>
     public interface IDbConnectionFactory
     {

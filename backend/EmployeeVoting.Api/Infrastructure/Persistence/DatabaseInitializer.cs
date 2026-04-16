@@ -1,7 +1,6 @@
 using Dapper;
-using Microsoft.Data.Sqlite;
 
-namespace EmployeeVoting.Api.Infrastructure
+namespace EmployeeVoting.Api.Infrastructure.Persistence
 {
     /// <summary>
     /// 資料庫初始化服務 - 建立所有資料表
