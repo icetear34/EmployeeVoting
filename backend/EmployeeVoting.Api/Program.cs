@@ -1,5 +1,6 @@
 using EmployeeVoting.Api.Application.Interfaces;
 using EmployeeVoting.Api.Application.Services;
+using EmployeeVoting.Api.Controllers;
 using EmployeeVoting.Api.Infrastructure.Configuration;
 using EmployeeVoting.Api.Infrastructure.Persistence;
 using EmployeeVoting.Api.Infrastructure.Persistence.Repositories;
@@ -28,10 +29,15 @@ builder.Services.AddSingleton<ICaptchaImageGenerator, CaptchaImageGenerator>();
 builder.Services.AddScoped<IAdminUserRepository, AdminUserRepository>();
 builder.Services.AddScoped<ISessionTokenRepository, SessionTokenRepository>();
 builder.Services.AddScoped<ICaptchaSessionRepository, CaptchaSessionRepository>();
+builder.Services.AddScoped<IVoteActivityRepository, VoteActivityRepository>();
 
 // 註冊 Application Services
 builder.Services.AddScoped<ICaptchaService, CaptchaService>();
 builder.Services.AddScoped<IAdminAuthService, AdminAuthService>();
+
+// 註冊 Action Filter
+builder.Services.AddScoped<EmployeeVoting.Api.Controllers.AdminAuthFilter>();
+builder.Services.AddScoped<IVoteActivityService, VoteActivityService>();
 
 // 加入控制器
 builder.Services.AddControllers();

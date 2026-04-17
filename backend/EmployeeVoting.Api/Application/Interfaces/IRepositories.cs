@@ -3,6 +3,22 @@ using EmployeeVoting.Api.Domain.Entities;
 namespace EmployeeVoting.Api.Application.Interfaces
 {
     /// <summary>
+    /// 投票活動 Repository 介面
+    /// </summary>
+    public interface IVoteActivityRepository
+    {
+        Task<VoteActivity?> GetByIdAsync(Guid id);
+        Task<VoteActivity?> GetByActivityCodeAsync(string activityCode);
+        Task<IEnumerable<VoteActivity>> GetAllAsync(bool includeDeleted = false);
+        Task<IEnumerable<VoteActivity>> GetActiveActivitiesAsync();
+        Task<Guid> CreateAsync(VoteActivity activity);
+        Task UpdateAsync(VoteActivity activity);
+        Task SoftDeleteAsync(Guid id);
+        Task<bool> ActivityCodeExistsAsync(string activityCode, Guid? excludeId = null);
+        Task<string> GenerateActivityCodeAsync();
+    }
+
+    /// <summary>
     /// 管理者帳號 Repository 介面
     /// </summary>
     public interface IAdminUserRepository
