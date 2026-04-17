@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>帳號管理 - 員工投票系統</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../shared/styles.css">
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+
+<div class="screen active">
+  <nav class="topbar">
+    <span class="topbar-logo">VoteSystem</span>
+    <div class="nav-switch">
+      <a href="activities.html" class="nav-switch-item">活動管理</a>
+      <a href="users.html" class="nav-switch-item active">帳號管理</a>
+    </div>
+    <button class="topbar-action" onclick="doLogout()">登出</button>
+  </nav>
+
+  <div class="container">
+    <!-- 操作區 -->
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-body" style="padding:16px">
+        <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+          <div class="form-group" style="margin:0;flex:1;min-width:200px">
+            <label>搜尋帳號</label>
+            <input type="text" id="search-keyword" class="form-input" placeholder="搜尋帳號或姓名" onkeyup="handleSearchKeyup(event)">
+          </div>
+          <button class="btn btn-outline" onclick="searchUsers()">搜尋</button>
+          <button class="btn" onclick="openUserModal()">+ 新增帳號</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 帳號列表 -->
+    <div class="card">
+      <div class="card-body" style="padding:0">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>帳號</th>
+              <th>姓名</th>
+              <th>角色</th>
+              <th>建立時間</th>
+              <th>狀態</th>
+              <th style="width:150px">操作</th>
+            </tr>
+          </thead>
+          <tbody id="user-table-body">
+            <tr><td colspan="6" style="text-align:center;padding:40px;color:var(--ink-3)">載入中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 分頁 -->
+    <div id="pagination-container" class="pagination-container"></div>
+  </div>
+</div>
+
+<!-- 新增/編輯帳號 Modal -->
+<div id="user-modal" class="modal-overlay">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <div class="modal-title" id="user-modal-title">新增帳號</div>
+      <button class="modal-close" onclick="closeUserModal()">&times;</button>
+    </div>
+
+    <div class="modal-body">
+      <div id="user-error" class="banner banner-error" style="display:none"></div>
+
+      <form id="user-form">
+        <input type="hidden" id="user-id">
+
+        <div class="form-group">
+          <label>帳號 <span class="required">*</span></label>
+          <input type="text" id="user-username" class="form-input" placeholder="請輸入帳號" required autocomplete="off">
+        </div>
+
+        <div class="form-group" id="password-group">
+          <label>密碼 <span class="required">*</span></label>
+          <input type="password" id="user-password" class="form-input" placeholder="請輸入密碼" autocomplete="new-password">
+          <span id="password-hint" style="font-size:12px;color:var(--ink-3);display:none">留空表示不修改密碼</span>
+        </div>
+
+        <div class="form-group">
+          <label>姓名 <span class="required">*</span></label>
+          <input type="text" id="user-name" class="form-input" placeholder="請輸入姓名" required>
+        </div>
+
+        <div class="form-group">
+          <label>角色</label>
+          <select id="user-role" class="form-input">
+            <option value="admin">管理員</option>
+            <option value="super_admin">超級管理員</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>
+            <input type="checkbox" id="user-enabled" checked> 啟用此帳號
+          </label>
+        </div>
+      </form>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-outline" onclick="closeUserModal()">取消</button>
+      <button type="button" class="btn" id="save-user-btn" onclick="saveUser()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 刪除確認 Modal -->
+<div id="delete-modal" class="modal-overlay">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-title">確認刪除</div>
+    <div class="modal-body">
+      <p>確定要刪除帳號 <strong id="delete-username"></strong> 嗎？</p>
+      <p style="font-size:13px;color:var(--ink-3)">此操作無法復原。</p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeDeleteModal()">取消</button>
+      <button class="btn btn-danger" id="confirm-delete-btn" onclick="confirmDelete()">確認刪除</button>
+    </div>
+  </div>
+</div>
+
+<!-- 重設密碼 Modal -->
+<div id="reset-password-modal" class="modal-overlay">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-title">重設密碼</div>
+    <div class="modal-body">
+      <div id="reset-error" class="banner banner-error" style="display:none"></div>
+      <p style="margin-bottom:16px">為帳號 <strong id="reset-username"></strong> 設定新密碼：</p>
+      <div class="form-group">
+        <label>新密碼 <span class="required">*</span></label>
+        <input type="password" id="new-password" class="form-input" placeholder="請輸入新密碼" autocomplete="new-password">
+      </div>
+      <div class="form-group">
+        <label>確認密碼 <span class="required">*</span></label>
+        <input type="password" id="confirm-password" class="form-input" placeholder="請再次輸入新密碼" autocomplete="new-password">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeResetPasswordModal()">取消</button>
+      <button class="btn" id="reset-password-btn" onclick="resetPassword()">確認重設</button>
+    </div>
+  </div>
+</div>
+
+<script src="../shared/utils.js"></script>
+<script src="admin.js"></script>
+<script>
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 狀態管理
+  // ═══════════════════════════════════════════════════════════════════════════
+  let users = [];
+  let currentPage = 1;
+  let totalPages = 1;
+  let pageSize = 10;
+
+  let editingUser = null;
+  let deleteUserId = null;
+  let resetUserId = null;
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 頁面初始化
+  // ═══════════════════════════════════════════════════════════════════════════
+  document.addEventListener('DOMContentLoaded', async () => {
+    await checkAdminSession();
+    await loadUsers();
+  });
+
+  async function checkAdminSession() {
+    const session = CookieUtil.get('admin_session');
+    if (!session) {
+      window.location.href = 'login.html';
+      return;
+    }
+
+    try {
+      await ApiUtil.get('/admin-auth/me');
+    } catch (error) {
+      if (error.status === 401) {
+        CookieUtil.remove('admin_session');
+        window.location.href = 'login.html';
+      }
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 帳號列表
+  // ═══════════════════════════════════════════════════════════════════════════
+  async function loadUsers() {
+    const keyword = document.getElementById('search-keyword').value.trim();
+
+    const tbody = document.getElementById('user-table-body');
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--ink-3)">載入中...</td></tr>';
+
+    try {
+      const params = new URLSearchParams({
+        page: currentPage,
+        pageSize: pageSize
+      });
+      if (keyword) params.append('keyword', keyword);
+
+      const response = await ApiUtil.get(`/admin/users?${params.toString()}`);
+      
+      users = response.items || response.data || [];
+      totalPages = response.totalPages || 1;
+      currentPage = response.page || 1;
+
+      renderUserTable();
+      renderPagination();
+
+    } catch (error) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--danger)">${error.message || '載入失敗'}</td></tr>`;
+    }
+  }
+
+  function renderUserTable() {
+    const tbody = document.getElementById('user-table-body');
+    
+    if (users.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--ink-3)">尚無帳號資料</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = users.map(user => {
+      const roleText = user.role === 'super_admin' ? '超級管理員' : '管理員';
+      const statusBadge = user.isEnabled !== false 
+        ? '<span class="badge badge-active">啟用</span>'
+        : '<span class="badge badge-ended">停用</span>';
+
+      return `
+        <tr>
+          <td><code>${UIUtil.escapeHtml(user.username)}</code></td>
+          <td>${UIUtil.escapeHtml(user.name || '-')}</td>
+          <td>${roleText}</td>
+          <td>${UIUtil.formatDateTime(user.createdAt)}</td>
+          <td>${statusBadge}</td>
+          <td>
+            <button class="btn btn-outline btn-sm" onclick="openUserModal('${user.id}')">編輯</button>
+            <button class="btn btn-outline btn-sm" onclick="openResetPasswordModal('${user.id}', '${UIUtil.escapeHtml(user.username)}')">重設密碼</button>
+            <button class="btn btn-outline btn-sm btn-danger" onclick="openDeleteModal('${user.id}', '${UIUtil.escapeHtml(user.username)}')">刪除</button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  function renderPagination() {
+    const container = document.getElementById('pagination-container');
+    container.innerHTML = PaginationUtil.render(currentPage, totalPages, 'goToPage');
+  }
+
+  function goToPage(page) {
+    if (page < 1 || page > totalPages) return;
+    currentPage = page;
+    loadUsers();
+  }
+
+  function searchUsers() {
+    currentPage = 1;
+    loadUsers();
+  }
+
+  function handleSearchKeyup(event) {
+    if (event.key === 'Enter') {
+      searchUsers();
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 新增/編輯帳號 Modal
+  // ═══════════════════════════════════════════════════════════════════════════
+  async function openUserModal(userId = null) {
+    editingUser = null;
+
+    document.getElementById('user-form').reset();
+    document.getElementById('user-id').value = '';
+    document.getElementById('user-enabled').checked = true;
+    document.getElementById('user-error').style.display = 'none';
+
+    const modalTitle = document.getElementById('user-modal-title');
+    const passwordInput = document.getElementById('user-password');
+    const passwordHint = document.getElementById('password-hint');
+    const usernameInput = document.getElementById('user-username');
+
+    if (userId) {
+      modalTitle.textContent = '編輯帳號';
+      passwordInput.required = false;
+      passwordHint.style.display = 'inline';
+      usernameInput.disabled = true;
+
+      // 載入帳號資料
+      const user = users.find(u => u.id === userId);
+      if (user) {
+        editingUser = user;
+        document.getElementById('user-id').value = user.id;
+        document.getElementById('user-username').value = user.username;
+        document.getElementById('user-name').value = user.name || '';
+        document.getElementById('user-role').value = user.role || 'admin';
+        document.getElementById('user-enabled').checked = user.isEnabled !== false;
+      }
+    } else {
+      modalTitle.textContent = '新增帳號';
+      passwordInput.required = true;
+      passwordHint.style.display = 'none';
+      usernameInput.disabled = false;
+    }
+
+    UIUtil.showModal('user-modal');
+  }
+
+  function closeUserModal() {
+    UIUtil.closeModal('user-modal');
+  }
+
+  async function saveUser() {
+    const errorEl = document.getElementById('user-error');
+    errorEl.style.display = 'none';
+
+    const id = document.getElementById('user-id').value;
+    const username = document.getElementById('user-username').value.trim();
+    const password = document.getElementById('user-password').value;
+    const name = document.getElementById('user-name').value.trim();
+    const role = document.getElementById('user-role').value;
+    const isEnabled = document.getElementById('user-enabled').checked;
+
+    // 驗證
+    if (!username || !name) {
+      UIUtil.showError(errorEl, '請填寫所有必填欄位');
+      return;
+    }
+
+    if (!id && !password) {
+      UIUtil.showError(errorEl, '新增帳號時必須設定密碼');
+      return;
+    }
+
+    const btn = document.getElementById('save-user-btn');
+    UIUtil.setLoading(btn, true);
+
+    const payload = {
+      username,
+      name,
+      role,
+      isEnabled
+    };
+
+    if (password) {
+      payload.password = password;
+    }
+
+    try {
+      if (id) {
+        await ApiUtil.put(`/admin/users/${id}`, payload);
+      } else {
+        await ApiUtil.post('/admin/users', payload);
+      }
+
+      closeUserModal();
+      await loadUsers();
+
+    } catch (error) {
+      UIUtil.showError(errorEl, error.message || '儲存失敗');
+    } finally {
+      UIUtil.setLoading(btn, false);
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 刪除帳號
+  // ═══════════════════════════════════════════════════════════════════════════
+  function openDeleteModal(userId, username) {
+    deleteUserId = userId;
+    document.getElementById('delete-username').textContent = username;
+    UIUtil.showModal('delete-modal');
+  }
+
+  function closeDeleteModal() {
+    UIUtil.closeModal('delete-modal');
+    deleteUserId = null;
+  }
+
+  async function confirmDelete() {
+    if (!deleteUserId) return;
+
+    const btn = document.getElementById('confirm-delete-btn');
+    UIUtil.setLoading(btn, true);
+
+    try {
+      await ApiUtil.delete(`/admin/users/${deleteUserId}`);
+      closeDeleteModal();
+      await loadUsers();
+    } catch (error) {
+      alert('刪除失敗: ' + (error.message || '未知錯誤'));
+    } finally {
+      UIUtil.setLoading(btn, false);
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 重設密碼
+  // ═══════════════════════════════════════════════════════════════════════════
+  function openResetPasswordModal(userId, username) {
+    resetUserId = userId;
+    document.getElementById('reset-username').textContent = username;
+    document.getElementById('new-password').value = '';
+    document.getElementById('confirm-password').value = '';
+    document.getElementById('reset-error').style.display = 'none';
+    UIUtil.showModal('reset-password-modal');
+  }
+
+  function closeResetPasswordModal() {
+    UIUtil.closeModal('reset-password-modal');
+    resetUserId = null;
+  }
+
+  async function resetPassword() {
+    if (!resetUserId) return;
+
+    const errorEl = document.getElementById('reset-error');
+    errorEl.style.display = 'none';
+
+    const newPassword = document.getElementById('new-password').value;
+    const confirmPassword = document.getElementById('confirm-password').value;
+
+    if (!newPassword) {
+      UIUtil.showError(errorEl, '請輸入新密碼');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      UIUtil.showError(errorEl, '兩次輸入的密碼不一致');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      UIUtil.showError(errorEl, '密碼長度至少 6 個字元');
+      return;
+    }
+
+    const btn = document.getElementById('reset-password-btn');
+    UIUtil.setLoading(btn, true);
+
+    try {
+      await ApiUtil.post(`/admin/users/${resetUserId}/reset-password`, {
+        newPassword
+      });
+
+      closeResetPasswordModal();
+      alert('密碼重設成功');
+
+    } catch (error) {
+      UIUtil.showError(errorEl, error.message || '重設失敗');
+    } finally {
+      UIUtil.setLoading(btn, false);
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 登出
+  // ═══════════════════════════════════════════════════════════════════════════
+  async function doLogout() {
+    try {
+      await ApiUtil.post('/admin-auth/logout', {});
+    } catch (error) {
+      // 忽略
+    }
+    CookieUtil.remove('admin_session');
+    sessionStorage.removeItem('admin_data');
+    window.location.href = 'login.html';
+  }
+</script>
+
+</body>
+</html>

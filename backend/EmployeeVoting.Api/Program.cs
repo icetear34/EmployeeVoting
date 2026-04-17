@@ -84,8 +84,22 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors();
+
+// 靜態檔案服務
+app.UseDefaultFiles(new DefaultFilesOptions
+{
+    DefaultFileNames = new List<string> { "index.html" }
+});
 app.UseStaticFiles();
+
 app.UseAuthorization();
 app.MapControllers();
+
+// 根路徑導向到管理員登入頁
+app.MapGet("/", context =>
+{
+    context.Response.Redirect("/admin/login.html");
+    return Task.CompletedTask;
+});
 
 app.Run();

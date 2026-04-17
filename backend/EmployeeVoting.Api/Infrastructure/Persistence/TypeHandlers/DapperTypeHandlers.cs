@@ -53,7 +53,8 @@ namespace EmployeeVoting.Api.Infrastructure.Persistence.TypeHandlers
             if (value == null || value == DBNull.Value)
                 return DateTime.MinValue;
 
-            return DateTime.Parse(value.ToString()!).ToUniversalTime();
+            // 使用 DateTimeStyles.RoundtripKind 保留原始時區資訊
+            return DateTime.Parse(value.ToString()!, null, System.Globalization.DateTimeStyles.RoundtripKind);
         }
 
         public override void SetValue(IDbDataParameter parameter, DateTime value)

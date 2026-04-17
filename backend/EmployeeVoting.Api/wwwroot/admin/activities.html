@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>投票活動管理 - 員工投票系統</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../shared/styles.css">
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+
+<div class="screen active">
+  <nav class="topbar">
+    <span class="topbar-logo">VoteSystem</span>
+    <div class="nav-switch">
+      <a href="activities.html" class="nav-switch-item active">活動管理</a>
+      <a href="users.html" class="nav-switch-item">帳號管理</a>
+    </div>
+    <button class="topbar-action" onclick="doLogout()">登出</button>
+  </nav>
+
+  <div class="container">
+    <!-- 搜尋區塊 -->
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-body" style="padding:16px">
+        <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+          <div class="form-group" style="margin:0;flex:1;min-width:200px">
+            <label>活動名稱/代碼</label>
+            <input type="text" id="search-keyword" class="form-input" placeholder="搜尋活動名稱或代碼" onkeyup="handleSearchKeyup(event)">
+          </div>
+          <div class="form-group" style="margin:0">
+            <label>狀態</label>
+            <select id="search-status" class="form-input" onchange="searchActivities()">
+              <option value="">全部</option>
+              <option value="pending">未開始</option>
+              <option value="active">進行中</option>
+              <option value="ended">已結束</option>
+            </select>
+          </div>
+          <button class="btn btn-outline" onclick="searchActivities()">搜尋</button>
+          <button class="btn" onclick="openActivityModal()">+ 新增活動</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 活動列表 -->
+    <div class="card">
+      <div class="card-body" style="padding:0">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>活動代碼</th>
+              <th>活動名稱</th>
+              <th>開始時間</th>
+              <th>結束時間</th>
+              <th>狀態</th>
+              <th style="width:120px">操作</th>
+            </tr>
+          </thead>
+          <tbody id="activity-table-body">
+            <tr><td colspan="6" style="text-align:center;padding:40px;color:var(--ink-3)">載入中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 分頁 -->
+    <div id="pagination-container" class="pagination-container"></div>
+  </div>
+</div>
+
+<!-- 活動 Modal -->
+<div id="activity-modal" class="modal-overlay">
+  <div class="modal activity-modal">
+    <div class="modal-header">
+      <span class="back-link" onclick="closeActivityModal()">← 返回列表</span>
+      <div class="modal-title-wrap">
+        <span class="modal-title" id="activity-modal-title">新增活動</span>
+        <span class="badge" id="activity-status-badge" style="display:none"></span>
+      </div>
+      <button class="modal-close" onclick="closeActivityModal()">&times;</button>
+    </div>
+
+    <div class="modal-tabs" id="modal-tabs">
+      <button class="modal-tab active" data-tab="basic">基本資料</button>
+      <button class="modal-tab" data-tab="voters">可投票名單</button>
+      <button class="modal-tab" data-tab="candidates">候選人管理</button>
+      <button class="modal-tab" data-tab="results">開票頁面</button>
+    </div>
+
+    <div class="modal-body">
+      <!-- 基本資料 Tab -->
+      <div id="tab-basic" class="tab-content active">
+        <input type="hidden" id="activity-id">
+        
+        <table class="detail-table">
+          <tr>
+            <th>活動名稱</th>
+            <td><input type="text" id="activity-name" class="form-input" placeholder="請輸入活動名稱"></td>
+          </tr>
+          <tr>
+            <th>說明</th>
+            <td><textarea id="activity-desc" rows="3" placeholder="請輸入活動說明（可選）"></textarea></td>
+          </tr>
+          <tr>
+            <th>活動代號</th>
+            <td><input type="text" id="activity-code" class="form-input" placeholder="例：VOTE-20260416-0001" style="color:var(--ink-3)"></td>
+          </tr>
+          <tr>
+            <th>開始時間</th>
+            <td><input type="datetime-local" id="activity-start" class="form-input"></td>
+          </tr>
+          <tr>
+            <th>結束時間</th>
+            <td><input type="datetime-local" id="activity-end" class="form-input"></td>
+          </tr>
+          <tr>
+            <th>狀態</th>
+            <td><span class="badge" id="detail-status-badge">進行中</span></td>
+          </tr>
+          <tr>
+            <th>建立時間</th>
+            <td id="detail-created-at" style="color:var(--ink-3)">-</td>
+          </tr>
+          <tr>
+            <th>建立人</th>
+            <td id="detail-created-by">-</td>
+          </tr>
+        </table>
+
+        <div class="result-view-settings" style="margin-top:20px">
+          <div style="font-weight:500;margin-bottom:12px">結果查閱設定</div>
+          <table class="detail-table">
+            <tr>
+              <th>允許查閱</th>
+              <td>
+                <label style="display:flex;align-items:center;gap:8px">
+                  <input type="checkbox" id="is-result-viewable">
+                  <span>允許投票人查閱投票結果</span>
+                </label>
+              </td>
+            </tr>
+            <tr id="result-view-start-row" style="display:none">
+              <th>查閱開始時間</th>
+              <td><input type="datetime-local" id="result-view-start" class="form-input"></td>
+            </tr>
+            <tr id="result-view-end-row" style="display:none">
+              <th>查閱結束時間</th>
+              <td><input type="datetime-local" id="result-view-end" class="form-input"></td>
+            </tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- 投票人員 Tab -->
+      <div id="tab-voters" class="tab-content">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <span style="font-size:14px;color:var(--ink-3)">已匯入 <strong id="voter-count">0</strong> 位投票人</span>
+          <div style="display:flex;gap:8px">
+            <input type="file" id="voter-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleVoterFileUpload(event)">
+            <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('voter-file').click()">匯入名單</button>
+            <button type="button" class="btn btn-outline btn-sm" onclick="downloadVoterTemplate()">下載範本</button>
+          </div>
+        </div>
+        <div class="voter-import-result" id="voter-import-result"></div>
+        <div id="voter-list-wrap" style="max-height:300px;overflow-y:auto">
+          <table class="table table-sm" id="voter-table">
+            <thead>
+              <tr>
+                <th>員工編號</th>
+                <th>姓名</th>
+                <th>部門</th>
+                <th style="width:60px">操作</th>
+              </tr>
+            </thead>
+            <tbody id="voter-table-body">
+              <tr><td colspan="4" style="text-align:center;color:var(--ink-3)">尚無投票人員</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 候選人 Tab -->
+      <div id="tab-candidates" class="tab-content">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <span style="font-size:14px;color:var(--ink-3)">共 <strong id="candidate-count">0</strong> 位候選人</span>
+          <button type="button" class="btn btn-sm" onclick="addCandidateRow()">+ 新增候選人</button>
+        </div>
+        <div id="candidate-list" class="candidate-list"></div>
+      </div>
+
+      <!-- 投票結果 Tab -->
+      <div id="tab-results" class="tab-content">
+        <div id="results-content">
+          <div style="text-align:center;color:var(--ink-3);padding:40px">
+            活動尚未開始或尚無投票資料
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn" id="save-activity-btn" onclick="saveActivity()">儲存變更</button>
+    </div>
+  </div>
+</div>
+
+<!-- 刪除確認 Modal -->
+<div id="delete-modal" class="modal-overlay">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-title">確認刪除</div>
+    <div class="modal-body">
+      <p>確定要刪除活動 <strong id="delete-activity-name"></strong> 嗎？</p>
+      <p style="font-size:13px;color:var(--ink-3)">此操作無法復原，所有相關資料將被刪除。</p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeDeleteModal()">取消</button>
+      <button class="btn btn-danger" id="confirm-delete-btn" onclick="confirmDelete()">確認刪除</button>
+    </div>
+  </div>
+</div>
+
+<script src="../shared/utils.js"></script>
+<script src="admin.js"></script>
+<script>
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 狀態管理
+  // ═══════════════════════════════════════════════════════════════════════════
+  let activities = [];
+  let currentPage = 1;
+  let totalPages = 1;
+  let pageSize = 10;
+
+  let editingActivity = null;  // 正在編輯的活動
+  let voterList = [];          // 投票人員列表
+  let candidateList = [];      // 候選人列表
+  let deleteActivityId = null; // 待刪除的活動 ID
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 頁面初始化
+  // ═══════════════════════════════════════════════════════════════════════════
+  document.addEventListener('DOMContentLoaded', async () => {
+    await checkAdminSession();
+    initTabs();
+    initResultViewToggle();
+    await loadActivities();
+  });
+
+  async function checkAdminSession() {
+    // HttpOnly Cookie 無法用 JS 讀取，直接呼叫 API 驗證
+    try {
+      const me = await ApiUtil.get('/admin-auth/me');
+      // 更新 sessionStorage
+      sessionStorage.setItem('admin_data', JSON.stringify({
+        account: me.account,
+        displayName: me.displayName
+      }));
+    } catch (error) {
+      // Session 無效或過期
+      sessionStorage.removeItem('admin_data');
+      window.location.href = 'login.html';
+    }
+  }
+
+  function initTabs() {
+    const tabs = document.querySelectorAll('.modal-tab');
+    tabs.forEach(tab => {
+      tab.onclick = () => switchTab(tab.dataset.tab);
+    });
+  }
+
+  function initResultViewToggle() {
+    const checkbox = document.getElementById('is-result-viewable');
+    const startRow = document.getElementById('result-view-start-row');
+    const endRow = document.getElementById('result-view-end-row');
+    checkbox.onchange = () => {
+      const show = checkbox.checked ? 'table-row' : 'none';
+      startRow.style.display = show;
+      endRow.style.display = show;
+    };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 活動列表
+  // ═══════════════════════════════════════════════════════════════════════════
+  async function loadActivities() {
+    const keyword = document.getElementById('search-keyword').value.trim();
+    const status = document.getElementById('search-status').value;
+
+    const tbody = document.getElementById('activity-table-body');
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--ink-3)">載入中...</td></tr>';
+
+    try {
+      const params = new URLSearchParams({
+        page: currentPage,
+        pageSize: pageSize
+      });
+      if (keyword) params.append('keyword', keyword);
+      if (status) params.append('status', status);
+
+      const response = await ApiUtil.get(`/admin/activities?${params.toString()}`);
+      
+      activities = response.items || response.data || [];
+      totalPages = response.totalPages || 1;
+      currentPage = response.page || 1;
+
+      renderActivityTable();
+      renderPagination();
+
+    } catch (error) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--danger)">${error.message || '載入失敗'}</td></tr>`;
+    }
+  }
+
+  function renderActivityTable() {
+    const tbody = document.getElementById('activity-table-body');
+    
+    if (activities.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--ink-3)">尚無活動資料</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = activities.map(act => {
+      const status = UIUtil.getActivityStatus(act.startTime, act.endTime);
+      return `
+        <tr>
+          <td><code>${UIUtil.escapeHtml(act.activityCode || act.code)}</code></td>
+          <td>${UIUtil.escapeHtml(act.activityName || act.name)}</td>
+          <td>${UIUtil.formatDateTime(act.startTime)}</td>
+          <td>${UIUtil.formatDateTime(act.endTime)}</td>
+          <td><span class="badge ${status.className}">${status.text}</span></td>
+          <td>
+            <button class="btn btn-outline btn-sm" onclick="openActivityModal('${act.id}')">檢視</button>
+            <button class="btn btn-outline btn-sm btn-danger" onclick="openDeleteModal('${act.id}', '${UIUtil.escapeHtml(act.activityName || act.name)}')">刪除</button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  function renderPagination() {
+    const container = document.getElementById('pagination-container');
+    container.innerHTML = PaginationUtil.render(currentPage, totalPages, 'goToPage');
+  }
+
+  function goToPage(page) {
+    if (page < 1 || page > totalPages) return;
+    currentPage = page;
+    loadActivities();
+  }
+
+  function searchActivities() {
+    currentPage = 1;
+    loadActivities();
+  }
+
+  function handleSearchKeyup(event) {
+    if (event.key === 'Enter') {
+      searchActivities();
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 活動 Modal
+  // ═══════════════════════════════════════════════════════════════════════════
+  async function openActivityModal(activityId = null) {
+    editingActivity = null;
+    voterList = [];
+    candidateList = [];
+
+    // 重設表單
+    document.getElementById('activity-id').value = '';
+    document.getElementById('activity-name').value = '';
+    document.getElementById('activity-desc').value = '';
+    document.getElementById('activity-code').value = '';
+    document.getElementById('activity-start').value = '';
+    document.getElementById('activity-end').value = '';
+    document.getElementById('is-result-viewable').checked = false;
+    document.getElementById('result-view-start').value = '';
+    document.getElementById('result-view-end').value = '';
+    document.getElementById('result-view-start-row').style.display = 'none';
+    document.getElementById('result-view-end-row').style.display = 'none';
+    document.getElementById('detail-created-at').textContent = '-';
+    document.getElementById('detail-created-by').textContent = '-';
+
+    const modalTitle = document.getElementById('activity-modal-title');
+    const statusBadge = document.getElementById('activity-status-badge');
+    const detailStatusBadge = document.getElementById('detail-status-badge');
+    const tabsEl = document.getElementById('modal-tabs');
+    const backLink = document.querySelector('.back-link');
+
+    if (activityId) {
+      tabsEl.style.display = 'flex';
+      backLink.style.display = 'inline';
+
+      // 載入活動詳情
+      try {
+        const activity = await ApiUtil.get(`/admin/activities/${activityId}`);
+        editingActivity = activity;
+
+        // 更新標題和狀態徽章
+        const actName = activity.activityName || activity.name || '活動詳情';
+        modalTitle.textContent = actName;
+        
+        const status = UIUtil.getActivityStatus(activity.startTime, activity.endTime);
+        statusBadge.textContent = status.text;
+        statusBadge.className = 'badge ' + status.className;
+        statusBadge.style.display = 'inline-block';
+        
+        detailStatusBadge.textContent = status.text;
+        detailStatusBadge.className = 'badge ' + status.className;
+
+        // 填入基本資料
+        document.getElementById('activity-id').value = activity.id;
+        document.getElementById('activity-name').value = activity.activityName || activity.name || '';
+        document.getElementById('activity-desc').value = activity.description || '';
+        document.getElementById('activity-code').value = activity.activityCode || activity.code || '';
+        document.getElementById('activity-start').value = formatDateTimeLocal(activity.startTime);
+        document.getElementById('activity-end').value = formatDateTimeLocal(activity.endTime);
+
+        // 建立時間、建立人
+        document.getElementById('detail-created-at').textContent = activity.createdAt 
+          ? UIUtil.formatDateTime(activity.createdAt) 
+          : '-';
+        document.getElementById('detail-created-by').textContent = activity.createdBy || 'admin';
+
+        // 結果查閱設定
+        const isViewable = activity.isResultViewable || false;
+        document.getElementById('is-result-viewable').checked = isViewable;
+        if (isViewable) {
+          document.getElementById('result-view-start-row').style.display = 'table-row';
+          document.getElementById('result-view-end-row').style.display = 'table-row';
+        }
+        
+        if (activity.resultViewStartTime) {
+          document.getElementById('result-view-start').value = formatDateTimeLocal(activity.resultViewStartTime);
+        }
+        if (activity.resultViewEndTime) {
+          document.getElementById('result-view-end').value = formatDateTimeLocal(activity.resultViewEndTime);
+        }
+
+        // 載入投票人員和候選人
+        voterList = activity.eligibleVoters || [];
+        candidateList = activity.candidates || [];
+
+        renderVoterTable();
+        renderCandidateList();
+        renderResultsTab(activity);
+
+      } catch (error) {
+        alert('載入活動詳情失敗: ' + (error.message || '未知錯誤'));
+        return;
+      }
+    } else {
+      modalTitle.textContent = '新增活動';
+      statusBadge.style.display = 'none';
+      detailStatusBadge.textContent = '草稿';
+      detailStatusBadge.className = 'badge badge-pending';
+      tabsEl.style.display = 'none';  // 新增時隱藏 tabs
+      backLink.style.display = 'none';
+
+      renderVoterTable();
+      renderCandidateList();
+    }
+
+    switchTab('basic');
+    UIUtil.showModal('activity-modal');
+  }
+
+  function closeActivityModal() {
+    UIUtil.closeModal('activity-modal');
+  }
+
+  function switchTab(tabId) {
+    // 更新 tab 按鈕狀態
+    document.querySelectorAll('.modal-tab').forEach(tab => {
+      tab.classList.toggle('active', tab.dataset.tab === tabId);
+    });
+
+    // 更新 tab 內容
+    document.querySelectorAll('.tab-content').forEach(content => {
+      content.classList.toggle('active', content.id === `tab-${tabId}`);
+    });
+  }
+
+  function formatDateTimeLocal(dateStr) {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const hour = String(d.getHours()).padStart(2, '0');
+    const minute = String(d.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hour}:${minute}`;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 投票人員管理
+  // ═══════════════════════════════════════════════════════════════════════════
+  function renderVoterTable() {
+    document.getElementById('voter-count').textContent = voterList.length;
+
+    const tbody = document.getElementById('voter-table-body');
+    if (voterList.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--ink-3)">尚無投票人員</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = voterList.map((voter, idx) => `
+      <tr>
+        <td>${UIUtil.escapeHtml(voter.employeeNo)}</td>
+        <td>${UIUtil.escapeHtml(voter.name || '-')}</td>
+        <td>${UIUtil.escapeHtml(voter.department || '-')}</td>
+        <td><button class="btn btn-outline btn-sm btn-danger" onclick="removeVoter(${idx})">移除</button></td>
+      </tr>
+    `).join('');
+  }
+
+  function removeVoter(index) {
+    voterList.splice(index, 1);
+    renderVoterTable();
+  }
+
+  async function handleVoterFileUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const resultEl = document.getElementById('voter-import-result');
+    resultEl.innerHTML = '<span style="color:var(--ink-3)">匯入中...</span>';
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch(API_BASE_URL + '/admin/voters/import-preview', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + CookieUtil.get('admin_session')
+        },
+        body: formData
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || '匯入失敗');
+      }
+
+      // 合併匯入的資料
+      const newVoters = result.voters || [];
+      const existingNos = new Set(voterList.map(v => v.employeeNo));
+      let addedCount = 0;
+
+      newVoters.forEach(voter => {
+        if (!existingNos.has(voter.employeeNo)) {
+          voterList.push(voter);
+          addedCount++;
+        }
+      });
+
+      resultEl.innerHTML = `
+        <span style="color:var(--success)">✓ 成功匯入 ${addedCount} 位投票人</span>
+        ${result.errors?.length ? `<br><span style="color:var(--warning)">⚠ ${result.errors.length} 筆資料有問題</span>` : ''}
+      `;
+
+      renderVoterTable();
+
+    } catch (error) {
+      resultEl.innerHTML = `<span style="color:var(--danger)">✗ ${error.message}</span>`;
+    }
+
+    // 清空 file input
+    event.target.value = '';
+  }
+
+  function downloadVoterTemplate() {
+    // 建立範本 CSV
+    const csv = 'employeeNo,name,department\nEMP001,王小明,研發部\nEMP002,李小華,行銷部';
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'voter_template.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 候選人管理
+  // ═══════════════════════════════════════════════════════════════════════════
+  function renderCandidateList() {
+    document.getElementById('candidate-count').textContent = candidateList.length;
+
+    const container = document.getElementById('candidate-list');
+    if (candidateList.length === 0) {
+      container.innerHTML = '<div style="text-align:center;color:var(--ink-3);padding:20px">尚無候選人，點擊上方按鈕新增</div>';
+      return;
+    }
+
+    container.innerHTML = candidateList.map((cand, idx) => `
+      <div class="candidate-edit-row">
+        <div class="candidate-edit-avatar">
+          ${cand.imageUrl 
+            ? `<img src="${cand.imageUrl}" alt="">`
+            : (cand.emoji || '👤')
+          }
+        </div>
+        <div class="candidate-edit-fields">
+          <input type="text" class="form-input" placeholder="姓名" value="${UIUtil.escapeHtml(cand.name || '')}" onchange="updateCandidate(${idx}, 'name', this.value)">
+          <input type="text" class="form-input" placeholder="說明（可選）" value="${UIUtil.escapeHtml(cand.description || '')}" onchange="updateCandidate(${idx}, 'description', this.value)">
+        </div>
+        <button type="button" class="btn btn-outline btn-sm btn-danger" onclick="removeCandidate(${idx})">移除</button>
+      </div>
+    `).join('');
+  }
+
+  function addCandidateRow() {
+    candidateList.push({
+      id: 'new_' + Date.now(),
+      name: '',
+      description: '',
+      emoji: '👤'
+    });
+    renderCandidateList();
+  }
+
+  function updateCandidate(index, field, value) {
+    if (candidateList[index]) {
+      candidateList[index][field] = value;
+    }
+  }
+
+  function removeCandidate(index) {
+    candidateList.splice(index, 1);
+    renderCandidateList();
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 投票結果 Tab
+  // ═══════════════════════════════════════════════════════════════════════════
+  function renderResultsTab(activity) {
+    const container = document.getElementById('results-content');
+
+    if (!activity.candidates || activity.candidates.length === 0) {
+      container.innerHTML = '<div style="text-align:center;color:var(--ink-3);padding:40px">尚無候選人資料</div>';
+      return;
+    }
+
+    const totalVotes = activity.candidates.reduce((sum, c) => sum + (c.votes || 0), 0);
+    const totalVoters = activity.eligibleVoters?.length || 0;
+    const turnout = totalVoters > 0 ? Math.round(totalVotes / totalVoters * 100) : 0;
+
+    // 統計區
+    let html = `
+      <div class="stats-row">
+        <div class="stat-item">
+          <div class="stat-value">${totalVoters}</div>
+          <div class="stat-label">可投票人數</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value">${totalVotes}</div>
+          <div class="stat-label">已投票數</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value">${turnout}%</div>
+          <div class="stat-label">投票率</div>
+        </div>
+      </div>
+    `;
+
+    // 圓餅圖佔位
+    html += '<div class="chart-wrap"><canvas id="result-chart"></canvas></div>';
+
+    // 詳細列表
+    html += '<div style="margin-top:20px"><strong>得票明細</strong></div>';
+    html += '<table class="table table-sm" style="margin-top:12px"><thead><tr><th>候選人</th><th>得票數</th><th>佔比</th></tr></thead><tbody>';
+    
+    const sortedCandidates = [...activity.candidates].sort((a, b) => (b.votes || 0) - (a.votes || 0));
+    sortedCandidates.forEach(cand => {
+      const pct = totalVotes > 0 ? Math.round((cand.votes || 0) / totalVotes * 100) : 0;
+      html += `
+        <tr>
+          <td>${UIUtil.escapeHtml(cand.name)}</td>
+          <td>${cand.votes || 0}</td>
+          <td>${pct}%</td>
+        </tr>
+      `;
+    });
+    html += '</tbody></table>';
+
+    container.innerHTML = html;
+
+    // 繪製圓餅圖
+    setTimeout(() => drawResultChart(sortedCandidates, totalVotes), 100);
+  }
+
+  function drawResultChart(candidates, totalVotes) {
+    const canvas = document.getElementById('result-chart');
+    if (!canvas || !canvas.getContext) return;
+
+    const ctx = canvas.getContext('2d');
+    const size = Math.min(canvas.parentElement.clientWidth, 280);
+    canvas.width = size;
+    canvas.height = size;
+
+    const centerX = size / 2;
+    const centerY = size / 2;
+    const radius = size / 2 - 20;
+
+    if (totalVotes === 0) {
+      ctx.fillStyle = '#e5e7eb';
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+      ctx.fill();
+
+      ctx.fillStyle = '#9ca3af';
+      ctx.font = '14px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('尚無投票', centerX, centerY);
+      return;
+    }
+
+    const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
+    let startAngle = -Math.PI / 2;
+
+    candidates.forEach((cand, idx) => {
+      const pct = (cand.votes || 0) / totalVotes;
+      const endAngle = startAngle + pct * 2 * Math.PI;
+
+      ctx.fillStyle = colors[idx % colors.length];
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY);
+      ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+      ctx.closePath();
+      ctx.fill();
+
+      startAngle = endAngle;
+    });
+
+    // 中心白圓（甜甜圈效果）
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius * 0.5, 0, 2 * Math.PI);
+    ctx.fill();
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 儲存活動
+  // ═══════════════════════════════════════════════════════════════════════════
+  async function saveActivity() {
+    const id = document.getElementById('activity-id').value;
+    const code = document.getElementById('activity-code').value.trim();
+    const name = document.getElementById('activity-name').value.trim();
+    const description = document.getElementById('activity-desc').value.trim();
+    const startTime = document.getElementById('activity-start').value;
+    const endTime = document.getElementById('activity-end').value;
+    const isResultViewable = document.getElementById('is-result-viewable').checked;
+    const resultViewStartTime = document.getElementById('result-view-start').value;
+    const resultViewEndTime = document.getElementById('result-view-end').value;
+
+    // 驗證
+    if (!code || !name || !startTime || !endTime) {
+      alert('請填寫所有必填欄位');
+      return;
+    }
+
+    if (new Date(endTime) <= new Date(startTime)) {
+      alert('結束時間必須晚於開始時間');
+      return;
+    }
+
+    // 驗證候選人
+    const validCandidates = candidateList.filter(c => c.name && c.name.trim());
+    if (validCandidates.length < 2) {
+      alert('請至少新增 2 位候選人');
+      return;
+    }
+
+    const btn = document.getElementById('save-activity-btn');
+    UIUtil.setLoading(btn, true);
+
+    const payload = {
+      activityCode: code,
+      activityName: name,
+      description,
+      startTime: new Date(startTime).toISOString(),
+      endTime: new Date(endTime).toISOString(),
+      isResultViewable,
+      resultViewStartTime: isResultViewable && resultViewStartTime ? new Date(resultViewStartTime).toISOString() : null,
+      resultViewEndTime: isResultViewable && resultViewEndTime ? new Date(resultViewEndTime).toISOString() : null,
+      eligibleVoters: voterList,
+      candidates: validCandidates.map(c => ({
+        id: c.id?.startsWith('new_') ? null : c.id,
+        name: c.name.trim(),
+        description: c.description?.trim() || '',
+        imageUrl: c.imageUrl || null,
+        emoji: c.emoji || '👤'
+      }))
+    };
+
+    try {
+      if (id) {
+        await ApiUtil.put(`/admin/activities/${id}`, payload);
+      } else {
+        await ApiUtil.post('/admin/activities', payload);
+      }
+
+      closeActivityModal();
+      await loadActivities();
+
+    } catch (error) {
+      alert('儲存失敗: ' + (error.message || '未知錯誤'));
+    } finally {
+      UIUtil.setLoading(btn, false);
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 刪除活動
+  // ═══════════════════════════════════════════════════════════════════════════
+  function openDeleteModal(activityId, activityName) {
+    deleteActivityId = activityId;
+    document.getElementById('delete-activity-name').textContent = activityName;
+    UIUtil.showModal('delete-modal');
+  }
+
+  function closeDeleteModal() {
+    UIUtil.closeModal('delete-modal');
+    deleteActivityId = null;
+  }
+
+  async function confirmDelete() {
+    if (!deleteActivityId) return;
+
+    const btn = document.getElementById('confirm-delete-btn');
+    UIUtil.setLoading(btn, true);
+
+    try {
+      await ApiUtil.delete(`/admin/activities/${deleteActivityId}`);
+      closeDeleteModal();
+      await loadActivities();
+    } catch (error) {
+      alert('刪除失敗: ' + (error.message || '未知錯誤'));
+    } finally {
+      UIUtil.setLoading(btn, false);
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 登出
+  // ═══════════════════════════════════════════════════════════════════════════
+  async function doLogout() {
+    try {
+      await ApiUtil.post('/admin-auth/logout', {});
+    } catch (error) {
+      // 忽略
+    }
+    CookieUtil.remove('admin_session');
+    sessionStorage.removeItem('admin_data');
+    window.location.href = 'login.html';
+  }
+</script>
+
+</body>
+</html>

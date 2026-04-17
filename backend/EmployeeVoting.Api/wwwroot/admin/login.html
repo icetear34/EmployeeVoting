@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>管理員登入 - 員工投票系統</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../shared/styles.css">
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+
+<div class="screen active">
+  <nav class="topbar">
+    <span class="topbar-logo">VoteSystem</span>
+    <span class="topbar-title">管理員登入</span>
+    <a href="../employee/login.html" class="topbar-action">員工投票入口</a>
+  </nav>
+
+  <div class="container">
+    <div class="card" style="max-width:400px;margin:80px auto;">
+      <div class="card-body">
+        <h2 style="text-align:center;margin-bottom:24px;font-weight:500">管理員登入</h2>
+
+        <div id="login-error" class="banner banner-error" style="display:none"></div>
+
+        <form id="login-form" onsubmit="return handleLogin(event)">
+          <div class="form-group">
+            <label>帳號</label>
+            <input type="text" id="username" class="form-input" placeholder="請輸入帳號" required autocomplete="username">
+          </div>
+
+          <div class="form-group">
+            <label>密碼</label>
+            <input type="password" id="password" class="form-input" placeholder="請輸入密碼" required autocomplete="current-password">
+          </div>
+
+          <div class="form-group">
+            <label>驗證碼</label>
+            <div class="captcha-row">
+              <input type="text" id="captcha-code" class="form-input" placeholder="請輸入驗證碼" maxlength="4" required autocomplete="off">
+              <div class="captcha-box" id="captcha-display" onclick="refreshCaptcha()" title="點擊更換驗證碼">
+                <img id="captcha-img" src="" alt="驗證碼">
+              </div>
+            </div>
+          </div>
+
+          <button type="submit" id="login-btn" class="btn" style="width:100%">登入</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../shared/utils.js"></script>
+<script>
+  let captchaKey = '';
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 頁面初始化
+  // ═══════════════════════════════════════════════════════════════════════════
+  document.addEventListener('DOMContentLoaded', async () => {
+    await checkSession();
+    await refreshCaptcha();
+  });
+
+  async function checkSession() {
+    // 嘗試呼叫 /admin-auth/me 檢查是否已登入
+    try {
+      await ApiUtil.get('/admin-auth/me');
+      // 已登入，導向活動管理頁
+      window.location.href = 'activities.html';
+    } catch (error) {
+      // 未登入或 Session 無效，繼續顯示登入頁
+      sessionStorage.removeItem('admin_data');
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 驗證碼
+  // ═══════════════════════════════════════════════════════════════════════════
+  async function refreshCaptcha() {
+    const result = await CaptchaUtil.fetch();
+    captchaKey = result.key;
+    document.getElementById('captcha-img').src = result.imageDataUrl;
+    document.getElementById('captcha-code').value = '';
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 登入
+  // ═══════════════════════════════════════════════════════════════════════════
+  async function handleLogin(event) {
+    event.preventDefault();
+
+    const errorEl = document.getElementById('login-error');
+    errorEl.style.display = 'none';
+
+    const account = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+    const captchaCode = document.getElementById('captcha-code').value.trim();
+
+    if (!account || !password || !captchaCode) {
+      UIUtil.showError(errorEl, '請填寫所有欄位');
+      return false;
+    }
+
+    if (!captchaKey) {
+      UIUtil.showError(errorEl, '請等待驗證碼載入');
+      return false;
+    }
+
+    // 本地驗證碼檢查
+    if (captchaKey.startsWith('local-')) {
+      if (!CaptchaUtil.verifyLocal(captchaCode)) {
+        UIUtil.showError(errorEl, '驗證碼錯誤');
+        await refreshCaptcha();
+        return false;
+      }
+    }
+
+    const btn = document.getElementById('login-btn');
+    UIUtil.setLoading(btn, true);
+
+    try {
+      const response = await ApiUtil.post('/admin-auth/login', {
+        account,
+        password,
+        captchaId: captchaKey,
+        captchaCode
+      });
+
+      // 儲存管理員資料（Cookie 由後端 HttpOnly 設定）
+      sessionStorage.setItem('admin_data', JSON.stringify({
+        account: response.account,
+        displayName: response.displayName
+      }));
+
+      // 登入成功，導向活動管理頁
+      window.location.href = 'activities.html';
+
+    } catch (error) {
+      UIUtil.showError(errorEl, error.message || '登入失敗');
+      await refreshCaptcha();
+    } finally {
+      UIUtil.setLoading(btn, false);
+    }
+
+    return false;
+  }
+</script>
+
+</body>
+</html>

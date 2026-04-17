@@ -24,7 +24,7 @@ namespace EmployeeVoting.Api.Infrastructure.Persistence.Repositories
             const string sql = @"
                 SELECT Id, ActivityCode, Name, Description, StartTime, EndTime, 
                        CreatedAt, CreatedBy, IsDeleted
-                FROM VoteActivities 
+                FROM VoteActivity 
                 WHERE Id = @Id";
             
             return await connection.QueryFirstOrDefaultAsync<VoteActivity>(sql, new { Id = id });
@@ -38,7 +38,7 @@ namespace EmployeeVoting.Api.Infrastructure.Persistence.Repositories
             const string sql = @"
                 SELECT Id, ActivityCode, Name, Description, StartTime, EndTime, 
                        CreatedAt, CreatedBy, IsDeleted
-                FROM VoteActivities 
+                FROM VoteActivity 
                 WHERE ActivityCode = @ActivityCode AND IsDeleted = 0";
             
             return await connection.QueryFirstOrDefaultAsync<VoteActivity>(sql, new { ActivityCode = activityCode });
@@ -52,7 +52,7 @@ namespace EmployeeVoting.Api.Infrastructure.Persistence.Repositories
             var sql = @"
                 SELECT Id, ActivityCode, Name, Description, StartTime, EndTime, 
                        CreatedAt, CreatedBy, IsDeleted
-                FROM VoteActivities";
+                FROM VoteActivity";
             
             if (!includeDeleted)
             {
@@ -72,7 +72,7 @@ namespace EmployeeVoting.Api.Infrastructure.Persistence.Repositories
             const string sql = @"
                 SELECT Id, ActivityCode, Name, Description, StartTime, EndTime, 
                        CreatedAt, CreatedBy, IsDeleted
-                FROM VoteActivities 
+                FROM VoteActivity 
                 WHERE IsDeleted = 0 
                   AND datetime('now') >= datetime(StartTime) 
                   AND datetime('now') <= datetime(EndTime)
@@ -87,7 +87,7 @@ namespace EmployeeVoting.Api.Infrastructure.Persistence.Repositories
             using var connection = _connectionFactory.CreateConnection();
             
             const string sql = @"
-                INSERT INTO VoteActivities 
+                INSERT INTO VoteActivity 
                     (Id, ActivityCode, Name, Description, StartTime, EndTime, CreatedAt, CreatedBy, IsDeleted)
                 VALUES 
                     (@Id, @ActivityCode, @Name, @Description, @StartTime, @EndTime, @CreatedAt, @CreatedBy, @IsDeleted)";
@@ -103,7 +103,7 @@ namespace EmployeeVoting.Api.Infrastructure.Persistence.Repositories
             using var connection = _connectionFactory.CreateConnection();
             
             const string sql = @"
-                UPDATE VoteActivities 
+                UPDATE VoteActivity 
                 SET Name = @Name, 
                     Description = @Description, 
                     StartTime = @StartTime, 
@@ -119,7 +119,7 @@ namespace EmployeeVoting.Api.Infrastructure.Persistence.Repositories
             using var connection = _connectionFactory.CreateConnection();
             
             const string sql = @"
-                UPDATE VoteActivities 
+                UPDATE VoteActivity 
                 SET IsDeleted = 1 
                 WHERE Id = @Id";
             
@@ -131,7 +131,7 @@ namespace EmployeeVoting.Api.Infrastructure.Persistence.Repositories
         {
             using var connection = _connectionFactory.CreateConnection();
             
-            var sql = "SELECT COUNT(1) FROM VoteActivities WHERE ActivityCode = @ActivityCode AND IsDeleted = 0";
+            var sql = "SELECT COUNT(1) FROM VoteActivity WHERE ActivityCode = @ActivityCode AND IsDeleted = 0";
             
             if (excludeId.HasValue)
             {
@@ -154,7 +154,7 @@ namespace EmployeeVoting.Api.Infrastructure.Persistence.Repositories
             // 取得今天最大的流水號
             const string sql = @"
                 SELECT ActivityCode 
-                FROM VoteActivities 
+                FROM VoteActivity 
                 WHERE ActivityCode LIKE @Prefix || '%'
                 ORDER BY ActivityCode DESC 
                 LIMIT 1";
