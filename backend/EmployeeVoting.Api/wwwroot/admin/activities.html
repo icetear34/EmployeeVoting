@@ -14,8 +14,8 @@
   <nav class="topbar">
     <span class="topbar-logo">VoteSystem</span>
     <div class="nav-switch">
-      <a href="activities.html" class="nav-switch-item active">活動管理</a>
-      <a href="users.html" class="nav-switch-item">帳號管理</a>
+      <a href="activities.html" class="nav-switch-btn active">活動管理</a>
+      <a href="users.html" class="nav-switch-btn">帳號管理</a>
     </div>
     <button class="topbar-action" onclick="doLogout()">登出</button>
   </nav>
@@ -29,6 +29,9 @@
             <label>活動名稱/代碼</label>
             <input type="text" id="search-keyword" class="form-input" placeholder="搜尋活動名稱或代碼" onkeyup="handleSearchKeyup(event)">
           </div>
+          <button class="btn btn-outline btn-sm btn-icon" onclick="searchActivities()" title="搜尋" style="height:42px;width:42px;padding:0;display:flex;align-items:center;justify-content:center">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </button>
           <div class="form-group" style="margin:0">
             <label>狀態</label>
             <select id="search-status" class="form-input" onchange="searchActivities()">
@@ -38,8 +41,7 @@
               <option value="ended">已結束</option>
             </select>
           </div>
-          <button class="btn btn-outline" onclick="searchActivities()">搜尋</button>
-          <button class="btn" onclick="openActivityModal()">+ 新增活動</button>
+          <button class="btn btn-sm" onclick="openActivityModal()" style="height:42px;white-space:nowrap">+ 新增活動</button>
         </div>
       </div>
     </div>
@@ -82,6 +84,7 @@
       <button class="modal-close" onclick="closeActivityModal()">&times;</button>
     </div>
 
+    <div class="modal-scroll">
     <div class="modal-tabs" id="modal-tabs">
       <button class="modal-tab active" data-tab="basic">基本資料</button>
       <button class="modal-tab" data-tab="voters">可投票名單</button>
@@ -203,6 +206,7 @@
     <div class="modal-footer">
       <button type="button" class="btn" id="save-activity-btn" onclick="saveActivity()">儲存變更</button>
     </div>
+    </div><!-- /.modal-scroll -->
   </div>
 </div>
 
@@ -241,27 +245,15 @@
   // 頁面初始化
   // ═══════════════════════════════════════════════════════════════════════════
   document.addEventListener('DOMContentLoaded', async () => {
-    await checkAdminSession();
+    // 簡單檢查：沒有 token 就跳回登入
+    if (!sessionStorage.getItem('admin_token')) {
+      window.location.href = 'login.html';
+      return;
+    }
     initTabs();
     initResultViewToggle();
     await loadActivities();
   });
-
-  async function checkAdminSession() {
-    // HttpOnly Cookie 無法用 JS 讀取，直接呼叫 API 驗證
-    try {
-      const me = await ApiUtil.get('/admin-auth/me');
-      // 更新 sessionStorage
-      sessionStorage.setItem('admin_data', JSON.stringify({
-        account: me.account,
-        displayName: me.displayName
-      }));
-    } catch (error) {
-      // Session 無效或過期
-      sessionStorage.removeItem('admin_data');
-      window.location.href = 'login.html';
-    }
-  }
 
   function initTabs() {
     const tabs = document.querySelectorAll('.modal-tab');
@@ -292,18 +284,12 @@
     tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--ink-3)">載入中...</td></tr>';
 
     try {
-      const params = new URLSearchParams({
-        page: currentPage,
-        pageSize: pageSize
-      });
-      if (keyword) params.append('keyword', keyword);
-      if (status) params.append('status', status);
-
-      const response = await ApiUtil.get(`/admin/activities?${params.toString()}`);
+      const response = await ApiUtil.get('/admin/activities');
       
-      activities = response.items || response.data || [];
-      totalPages = response.totalPages || 1;
-      currentPage = response.page || 1;
+      // 後端直接回傳陣列
+      activities = Array.isArray(response) ? response : (response.items || response.data || []);
+      totalPages = 1;
+      currentPage = 1;
 
       renderActivityTable();
       renderPagination();
@@ -340,8 +326,7 @@
   }
 
   function renderPagination() {
-    const container = document.getElementById('pagination-container');
-    container.innerHTML = PaginationUtil.render(currentPage, totalPages, 'goToPage');
+    PaginationUtil.render('pagination-container', currentPage, totalPages, 'goToPage');
   }
 
   function goToPage(page) {
@@ -856,7 +841,7 @@
     } catch (error) {
       // 忽略
     }
-    CookieUtil.remove('admin_session');
+    sessionStorage.removeItem('admin_token');
     sessionStorage.removeItem('admin_data');
     window.location.href = 'login.html';
   }

@@ -53,6 +53,11 @@
   cursor: pointer;
   border-radius: 7px;
   transition: all .15s;
+  text-decoration: none;
+}
+
+.nav-switch-btn:hover {
+  color: var(--ink-2);
 }
 
 .nav-switch-btn.active {
@@ -161,17 +166,23 @@
   max-width: 700px;
   width: 95vw;
   max-height: 90vh;
-  overflow-y: auto;
+  overflow: hidden;
   padding: 0;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.activity-modal .modal-scroll {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .activity-modal .modal-header {
-  position: sticky;
-  top: 0;
   background: white;
   padding: 16px 24px;
   border-bottom: 1px solid var(--border);
-  z-index: 10;
   display: flex;
   align-items: center;
   gap: 12px;

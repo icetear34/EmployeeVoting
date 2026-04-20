@@ -101,6 +101,13 @@ body {
 }
 
 /* ─── Layout ─── */
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 20px;
+}
+
 .center-wrap {
   flex: 1;
   display: flex;
@@ -115,9 +122,11 @@ body {
   border: 1px solid var(--border);
   border-radius: 16px;
   box-shadow: var(--shadow-md);
-  padding: 40px;
   width: 100%;
-  max-width: 420px;
+}
+
+.card-body {
+  padding: 24px;
 }
 
 .card-title {

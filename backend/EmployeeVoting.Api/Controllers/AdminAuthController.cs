@@ -95,8 +95,9 @@ namespace EmployeeVoting.Api.Controllers
             {
                 HttpOnly = true,
                 Secure = Request.IsHttps,
-                SameSite = SameSiteMode.Strict,
-                Expires = DateTimeOffset.UtcNow.AddHours(1)
+                SameSite = SameSiteMode.Lax,  // Lax 允許頁面導航時帶 Cookie
+                Expires = DateTimeOffset.UtcNow.AddHours(8),
+                Path = "/"
             });
 
             return Ok(response);

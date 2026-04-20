@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
@@ -39,7 +39,7 @@
             <label>驗證碼</label>
             <div class="captcha-row">
               <input type="text" id="captcha-code" class="form-input" placeholder="請輸入驗證碼" maxlength="4" required autocomplete="off">
-              <div class="captcha-box" id="captcha-display" onclick="refreshCaptcha()" title="點擊更換驗證碼">
+              <div class="captcha-box" onclick="refreshCaptcha()" title="點擊更換">
                 <img id="captcha-img" src="" alt="驗證碼">
               </div>
             </div>
@@ -56,29 +56,14 @@
 <script>
   let captchaKey = '';
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // 頁面初始化
-  // ═══════════════════════════════════════════════════════════════════════════
-  document.addEventListener('DOMContentLoaded', async () => {
-    await checkSession();
-    await refreshCaptcha();
+  document.addEventListener('DOMContentLoaded', () => {
+    if (sessionStorage.getItem('admin_token')) {
+      window.location.href = 'activities.html';
+      return;
+    }
+    refreshCaptcha();
   });
 
-  async function checkSession() {
-    // 嘗試呼叫 /admin-auth/me 檢查是否已登入
-    try {
-      await ApiUtil.get('/admin-auth/me');
-      // 已登入，導向活動管理頁
-      window.location.href = 'activities.html';
-    } catch (error) {
-      // 未登入或 Session 無效，繼續顯示登入頁
-      sessionStorage.removeItem('admin_data');
-    }
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // 驗證碼
-  // ═══════════════════════════════════════════════════════════════════════════
   async function refreshCaptcha() {
     const result = await CaptchaUtil.fetch();
     captchaKey = result.key;
@@ -86,12 +71,8 @@
     document.getElementById('captcha-code').value = '';
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // 登入
-  // ═══════════════════════════════════════════════════════════════════════════
   async function handleLogin(event) {
     event.preventDefault();
-
     const errorEl = document.getElementById('login-error');
     errorEl.style.display = 'none';
 
@@ -100,54 +81,32 @@
     const captchaCode = document.getElementById('captcha-code').value.trim();
 
     if (!account || !password || !captchaCode) {
-      UIUtil.showError(errorEl, '請填寫所有欄位');
+      errorEl.textContent = '請填寫所有欄位';
+      errorEl.style.display = 'block';
       return false;
-    }
-
-    if (!captchaKey) {
-      UIUtil.showError(errorEl, '請等待驗證碼載入');
-      return false;
-    }
-
-    // 本地驗證碼檢查
-    if (captchaKey.startsWith('local-')) {
-      if (!CaptchaUtil.verifyLocal(captchaCode)) {
-        UIUtil.showError(errorEl, '驗證碼錯誤');
-        await refreshCaptcha();
-        return false;
-      }
     }
 
     const btn = document.getElementById('login-btn');
-    UIUtil.setLoading(btn, true);
+    btn.disabled = true;
+    btn.textContent = '登入中...';
 
     try {
-      const response = await ApiUtil.post('/admin-auth/login', {
-        account,
-        password,
-        captchaId: captchaKey,
-        captchaCode
+      const resp = await ApiUtil.post('/admin-auth/login', {
+        account, password, captchaId: captchaKey, captchaCode
       });
-
-      // 儲存管理員資料（Cookie 由後端 HttpOnly 設定）
-      sessionStorage.setItem('admin_data', JSON.stringify({
-        account: response.account,
-        displayName: response.displayName
-      }));
-
-      // 登入成功，導向活動管理頁
+      sessionStorage.setItem('admin_token', resp.sessionToken);
+      sessionStorage.setItem('admin_name', resp.displayName);
       window.location.href = 'activities.html';
-
-    } catch (error) {
-      UIUtil.showError(errorEl, error.message || '登入失敗');
-      await refreshCaptcha();
+    } catch (err) {
+      errorEl.textContent = err.message || '登入失敗';
+      errorEl.style.display = 'block';
+      refreshCaptcha();
     } finally {
-      UIUtil.setLoading(btn, false);
+      btn.disabled = false;
+      btn.textContent = '登入';
     }
-
     return false;
   }
 </script>
-
 </body>
 </html>

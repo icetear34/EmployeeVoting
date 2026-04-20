@@ -42,14 +42,15 @@ builder.Services.AddScoped<IVoteActivityService, VoteActivityService>();
 // 加入控制器
 builder.Services.AddControllers();
 
-// 設定 CORS
+// 設定 CORS（開發用，生產環境前後端同源不需要）
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.WithOrigins("http://localhost:5000", "http://127.0.0.1:5000")
               .AllowAnyMethod()
-              .AllowAnyHeader();
+              .AllowAnyHeader()
+              .AllowCredentials();  // 允許帶 Cookie
     });
 });
 
