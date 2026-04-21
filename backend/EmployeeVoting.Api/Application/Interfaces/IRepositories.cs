@@ -54,4 +54,30 @@ namespace EmployeeVoting.Api.Application.Interfaces
         Task MarkAsUsedAsync(string captchaId);
         Task CleanupExpiredAsync();
     }
+
+    /// <summary>
+    /// 候選人 Repository 介面
+    /// </summary>
+    public interface ICandidateRepository
+    {
+        Task<IEnumerable<Candidate>> GetByActivityIdAsync(Guid activityId);
+        Task<Candidate?> GetByIdAsync(Guid id);
+        Task<Guid> CreateAsync(Candidate candidate);
+        Task BatchCreateAsync(IEnumerable<Candidate> candidates);
+        Task DeleteByActivityIdAsync(Guid activityId);
+        Task ReplaceAllAsync(Guid activityId, IEnumerable<Candidate> candidates);
+    }
+
+    /// <summary>
+    /// 可投票名單 Repository 介面
+    /// </summary>
+    public interface IEligibleVoterRepository
+    {
+        Task<IEnumerable<EligibleVoter>> GetByActivityIdAsync(Guid activityId);
+        Task<int> GetCountByActivityIdAsync(Guid activityId);
+        Task<EligibleVoter?> FindAsync(Guid activityId, string employeeNo);
+        Task BatchCreateAsync(IEnumerable<EligibleVoter> voters);
+        Task DeleteByActivityIdAsync(Guid activityId);
+        Task ReplaceAllAsync(Guid activityId, IEnumerable<EligibleVoter> voters);
+    }
 }

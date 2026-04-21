@@ -37,22 +37,13 @@ const ApiUtil = {
       'Content-Type': 'application/json',
     };
 
-    // 從 sessionStorage 取得 token，加入 Authorization header
-    const adminToken = sessionStorage.getItem('admin_token');
-    const employeeToken = sessionStorage.getItem('employee_token');
-    const token = adminToken || employeeToken;
-    
-    if (token) {
-      defaultHeaders['Authorization'] = `Bearer ${token}`;
-    }
-
     const config = {
       ...options,
       headers: {
         ...defaultHeaders,
         ...options.headers,
       },
-      credentials: 'include', // 同時也包含 cookies
+      credentials: 'include', // 自動帶上 HttpOnly Cookie
     };
 
     try {

@@ -11,22 +11,15 @@ const AdminUtil = {
    * @returns {Promise<object|null>} 管理員資料或 null
    */
   async checkAuth() {
-    const session = CookieUtil.get('admin_session');
-    if (!session) {
-      return null;
-    }
-
     try {
       const response = await ApiUtil.get('/admin-auth/me');
       sessionStorage.setItem('admin_data', JSON.stringify(response));
       return response;
     } catch (error) {
       if (error.status === 401) {
-        CookieUtil.remove('admin_session');
         sessionStorage.removeItem('admin_data');
         return null;
       }
-      // 若網路問題，嘗試使用快取
       const cached = sessionStorage.getItem('admin_data');
       return cached ? JSON.parse(cached) : null;
     }
@@ -45,7 +38,6 @@ const AdminUtil = {
    * 清除管理員登入資料
    */
   clearAuth() {
-    CookieUtil.remove('admin_session');
     sessionStorage.removeItem('admin_data');
   },
 
@@ -72,10 +64,7 @@ const AdminUtil = {
       captchaCode
     });
 
-    if (response.token) {
-      CookieUtil.set('admin_session', response.token, 1);
-    }
-
+    // 後端已設 HttpOnly Cookie，不需前端手動存 token
     if (response.admin) {
       sessionStorage.setItem('admin_data', JSON.stringify(response.admin));
     }
@@ -160,9 +149,7 @@ const ActivityApi = {
 
     const response = await fetch(API_BASE_URL + '/admin/voters/import-preview', {
       method: 'POST',
-      headers: {
-        'Authorization': 'Bearer ' + CookieUtil.get('admin_session')
-      },
+      credentials: 'include',
       body: formData
     });
 

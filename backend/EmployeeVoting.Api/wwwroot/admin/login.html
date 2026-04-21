@@ -56,10 +56,14 @@
 <script>
   let captchaKey = '';
 
-  document.addEventListener('DOMContentLoaded', () => {
-    if (sessionStorage.getItem('admin_token')) {
+  document.addEventListener('DOMContentLoaded', async () => {
+    // 嘗試呼叫 /me 確認是否已登入（靠 HttpOnly Cookie）
+    try {
+      await ApiUtil.get('/admin-auth/me');
       window.location.href = 'activities.html';
       return;
+    } catch (e) {
+      // 未登入，顯示登入頁
     }
     refreshCaptcha();
   });
@@ -94,8 +98,7 @@
       const resp = await ApiUtil.post('/admin-auth/login', {
         account, password, captchaId: captchaKey, captchaCode
       });
-      sessionStorage.setItem('admin_token', resp.sessionToken);
-      sessionStorage.setItem('admin_name', resp.displayName);
+      // 後端已設 HttpOnly Cookie，直接跳轉
       window.location.href = 'activities.html';
     } catch (err) {
       errorEl.textContent = err.message || '登入失敗';

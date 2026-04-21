@@ -39,6 +39,8 @@ namespace EmployeeVoting.Api.Domain.Entities
         public Guid Id { get; set; }
         public Guid VoteActivityId { get; set; }
         public string EmployeeNo { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string Department { get; set; } = string.Empty;
         public string BirthDate { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
     }

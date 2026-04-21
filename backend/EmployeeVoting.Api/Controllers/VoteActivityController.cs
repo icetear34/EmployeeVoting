@@ -155,5 +155,96 @@ namespace EmployeeVoting.Api.Controllers
                 });
             }
         }
+
+        /// <summary>
+        /// 編輯模式 - 整批更新候選人
+        /// </summary>
+        [HttpPut("{id}/candidates")]
+        [ProducesResponseType(typeof(SuccessResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> UpdateCandidates(Guid id, [FromBody] UpdateCandidatesRequest request)
+        {
+            try
+            {
+                await _voteActivityService.UpdateCandidatesAsync(id, request);
+                return Ok(new SuccessResponse { Success = true, Message = "候選人已更新" });
+            }
+            catch (NotFoundException ex)
+            {
+                return NotFound(new ErrorResponse { Code = ErrorCodes.NotFound, Message = ex.Message });
+            }
+            catch (ValidationException ex)
+            {
+                return BadRequest(new ErrorResponse { Code = ErrorCodes.ValidationFailed, Message = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// 編輯模式 - 整批更新投票名單
+        /// </summary>
+        [HttpPut("{id}/voters")]
+        [ProducesResponseType(typeof(SuccessResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> UpdateVoters(Guid id, [FromBody] UpdateEligibleVotersRequest request)
+        {
+            try
+            {
+                await _voteActivityService.UpdateEligibleVotersAsync(id, request);
+                return Ok(new SuccessResponse { Success = true, Message = "投票名單已更新" });
+            }
+            catch (NotFoundException ex)
+            {
+                return NotFound(new ErrorResponse { Code = ErrorCodes.NotFound, Message = ex.Message });
+            }
+            catch (ValidationException ex)
+            {
+                return BadRequest(new ErrorResponse { Code = ErrorCodes.ValidationFailed, Message = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// 上傳候選人圖片
+        /// </summary>
+        [HttpPost("candidates/upload-image")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> UploadCandidateImage(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+            {
+                return BadRequest(new ErrorResponse { Code = ErrorCodes.ValidationFailed, Message = "請選擇圖片檔案" });
+            }
+
+            // 驗證檔案類型
+            var allowedTypes = new[] { "image/jpeg", "image/png", "image/gif", "image/webp" };
+            if (!allowedTypes.Contains(file.ContentType.ToLower()))
+            {
+                return BadRequest(new ErrorResponse { Code = ErrorCodes.ValidationFailed, Message = "僅支援 JPG、PNG、GIF、WebP 格式" });
+            }
+
+            // 限制 5MB
+            if (file.Length > 5 * 1024 * 1024)
+            {
+                return BadRequest(new ErrorResponse { Code = ErrorCodes.ValidationFailed, Message = "圖片大小不可超過 5MB" });
+            }
+
+            var uploadsDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "candidates");
+            Directory.CreateDirectory(uploadsDir);
+
+            var ext = Path.GetExtension(file.FileName).ToLower();
+            var fileName = $"{Guid.NewGuid()}{ext}";
+            var filePath = Path.Combine(uploadsDir, fileName);
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            var imageUrl = $"/uploads/candidates/{fileName}";
+
+            return Ok(new { imageUrl });
+        }
     }
 }

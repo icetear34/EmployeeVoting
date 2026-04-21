@@ -7,29 +7,20 @@ namespace EmployeeVoting.Api.Application.Interfaces
     /// </summary>
     public interface IVoteActivityService
     {
-        /// <summary>
-        /// 取得所有活動列表
-        /// </summary>
         Task<IEnumerable<VoteActivityListItem>> GetAllActivitiesAsync();
-
-        /// <summary>
-        /// 取得活動詳情
-        /// </summary>
         Task<VoteActivityDetailResponse?> GetActivityByIdAsync(Guid id);
-
-        /// <summary>
-        /// 建立新活動
-        /// </summary>
         Task<VoteActivityDetailResponse> CreateActivityAsync(CreateVoteActivityRequest request, string createdBy);
-
-        /// <summary>
-        /// 更新活動
-        /// </summary>
         Task<VoteActivityDetailResponse> UpdateActivityAsync(Guid id, UpdateVoteActivityRequest request);
+        Task DeleteActivityAsync(Guid id);
 
         /// <summary>
-        /// 刪除活動（軟刪除）
+        /// 編輯模式 - 整批更新候選人
         /// </summary>
-        Task DeleteActivityAsync(Guid id);
+        Task UpdateCandidatesAsync(Guid activityId, UpdateCandidatesRequest request);
+
+        /// <summary>
+        /// 編輯模式 - 整批更新投票名單
+        /// </summary>
+        Task UpdateEligibleVotersAsync(Guid activityId, UpdateEligibleVotersRequest request);
     }
 }

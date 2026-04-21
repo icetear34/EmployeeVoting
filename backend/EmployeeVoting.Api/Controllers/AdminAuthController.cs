@@ -91,12 +91,23 @@ namespace EmployeeVoting.Api.Controllers
             }
 
             // 設定 Cookie
+
+            // HttpOnly 實際驗證用
             Response.Cookies.Append(CookieNames.AdminSession, response.SessionToken, new CookieOptions
             {
                 HttpOnly = true,
                 Secure = Request.IsHttps,
-                SameSite = SameSiteMode.Lax,  // Lax 允許頁面導航時帶 Cookie
-                Expires = DateTimeOffset.UtcNow.AddHours(8),
+                SameSite = SameSiteMode.Lax,
+                Expires = DateTimeOffset.UtcNow.AddDays(7),
+                Path = "/"
+            });
+            // 前端可讀標記
+            Response.Cookies.Append("admin_logged_in", "1", new CookieOptions
+            {
+                HttpOnly = false,
+                Secure = Request.IsHttps,
+                SameSite = SameSiteMode.Lax,
+                Expires = DateTimeOffset.UtcNow.AddDays(7),
                 Path = "/"
             });
 
@@ -152,6 +163,7 @@ namespace EmployeeVoting.Api.Controllers
 
             // 清除 Cookie
             Response.Cookies.Delete(CookieNames.AdminSession);
+            Response.Cookies.Delete("admin_logged_in");
 
             return NoContent();
         }

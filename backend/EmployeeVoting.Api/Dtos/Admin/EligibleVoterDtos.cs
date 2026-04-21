@@ -5,24 +5,11 @@ namespace EmployeeVoting.Api.Dtos.Admin
     /// </summary>
     public class EligibleVoterListItem
     {
-        /// <summary>
-        /// Id
-        /// </summary>
         public Guid Id { get; set; }
-
-        /// <summary>
-        /// 工號
-        /// </summary>
         public string EmployeeNo { get; set; } = string.Empty;
-
-        /// <summary>
-        /// 生日（yyyyMMdd）
-        /// </summary>
+        public string Name { get; set; } = string.Empty;
+        public string Department { get; set; } = string.Empty;
         public string BirthDate { get; set; } = string.Empty;
-
-        /// <summary>
-        /// 匯入時間
-        /// </summary>
         public DateTime CreatedAt { get; set; }
     }
 

@@ -30,6 +30,8 @@ builder.Services.AddScoped<IAdminUserRepository, AdminUserRepository>();
 builder.Services.AddScoped<ISessionTokenRepository, SessionTokenRepository>();
 builder.Services.AddScoped<ICaptchaSessionRepository, CaptchaSessionRepository>();
 builder.Services.AddScoped<IVoteActivityRepository, VoteActivityRepository>();
+builder.Services.AddScoped<ICandidateRepository, CandidateRepository>();
+builder.Services.AddScoped<IEligibleVoterRepository, EligibleVoterRepository>();
 
 // 註冊 Application Services
 builder.Services.AddScoped<ICaptchaService, CaptchaService>();
@@ -91,7 +93,19 @@ app.UseDefaultFiles(new DefaultFilesOptions
 {
     DefaultFileNames = new List<string> { "index.html" }
 });
-app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        var path = ctx.File.Name;
+        if (path.EndsWith(".html") || path.EndsWith(".js") || path.EndsWith(".css"))
+        {
+            ctx.Context.Response.Headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
+            ctx.Context.Response.Headers["Pragma"] = "no-cache";
+            ctx.Context.Response.Headers["Expires"] = "0";
+        }
+    }
+});
 
 app.UseAuthorization();
 app.MapControllers();

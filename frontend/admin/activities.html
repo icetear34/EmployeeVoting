@@ -248,19 +248,14 @@
   });
 
   async function checkAdminSession() {
-    const session = CookieUtil.get('admin_session');
-    if (!session) {
+    if (!CookieUtil.get('admin_logged_in')) {
       window.location.href = 'login.html';
       return;
     }
-
     try {
       await ApiUtil.get('/admin-auth/me');
     } catch (error) {
-      if (error.status === 401) {
-        CookieUtil.remove('admin_session');
-        window.location.href = 'login.html';
-      }
+      window.location.href = 'login.html';
     }
   }
 
@@ -601,12 +596,14 @@
 
     container.innerHTML = candidateList.map((cand, idx) => `
       <div class="candidate-edit-row">
-        <div class="candidate-edit-avatar">
+        <div class="candidate-edit-avatar" onclick="triggerCandidateImageUpload(${idx})" title="點擊上傳圖片" style="cursor:pointer;position:relative">
           ${cand.imageUrl 
             ? `<img src="${cand.imageUrl}" alt="">`
-            : (cand.emoji || '👤')
+            : `<span style="font-size:24px">${cand.emoji || '👤'}</span>`
           }
+          <div class="avatar-upload-hint">📷</div>
         </div>
+        <input type="file" id="candidate-img-${idx}" accept="image/*" style="display:none" onchange="handleCandidateImageUpload(event, ${idx})">
         <div class="candidate-edit-fields">
           <input type="text" class="form-input" placeholder="姓名" value="${UIUtil.escapeHtml(cand.name || '')}" onchange="updateCandidate(${idx}, 'name', this.value)">
           <input type="text" class="form-input" placeholder="說明（可選）" value="${UIUtil.escapeHtml(cand.description || '')}" onchange="updateCandidate(${idx}, 'description', this.value)">
@@ -621,6 +618,7 @@
       id: 'new_' + Date.now(),
       name: '',
       description: '',
+      imageUrl: '',
       emoji: '👤'
     });
     renderCandidateList();
@@ -635,6 +633,44 @@
   function removeCandidate(index) {
     candidateList.splice(index, 1);
     renderCandidateList();
+  }
+
+  function triggerCandidateImageUpload(index) {
+    document.getElementById(`candidate-img-${index}`).click();
+  }
+
+  async function handleCandidateImageUpload(event, index) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const avatarEl = event.target.previousElementSibling?.querySelector('.candidate-edit-avatar') 
+      || event.target.parentElement.querySelector('.candidate-edit-avatar');
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/admin/activities/candidates/upload-image', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + CookieUtil.get('admin_session')
+        },
+        body: formData
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.message || '上傳失敗');
+      }
+
+      candidateList[index].imageUrl = result.imageUrl;
+      candidateList[index].emoji = '';
+      renderCandidateList();
+    } catch (error) {
+      alert('圖片上傳失敗: ' + error.message);
+    }
+
+    event.target.value = '';
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -795,8 +831,7 @@
         id: c.id?.startsWith('new_') ? null : c.id,
         name: c.name.trim(),
         description: c.description?.trim() || '',
-        imageUrl: c.imageUrl || null,
-        emoji: c.emoji || '👤'
+        imagePath: c.imageUrl || '',
       }))
     };
 

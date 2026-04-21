@@ -10,7 +10,7 @@ namespace EmployeeVoting.Api.Infrastructure.Configuration
         /// <summary>
         /// Session 過期時間（分鐘）
         /// </summary>
-        public int SessionExpireMinutes { get; set; } = 60;
+        public int SessionExpireMinutes { get; set; } = 60*24*7;
 
         /// <summary>
         /// 驗證碼過期時間（分鐘）

@@ -325,6 +325,24 @@
   object-fit: cover;
 }
 
+.candidate-edit-avatar .avatar-upload-hint {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0,0,0,0.45);
+  color: #fff;
+  font-size: 12px;
+  text-align: center;
+  line-height: 18px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.candidate-edit-avatar:hover .avatar-upload-hint {
+  opacity: 1;
+}
+
 .candidate-edit-fields {
   flex: 1;
   display: flex;

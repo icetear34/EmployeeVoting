@@ -19,10 +19,21 @@ namespace EmployeeVoting.Api.Infrastructure.Persistence.Repositories
         public async Task<AdminUser?> GetByAccountAsync(string account)
         {
             using var connection = _connectionFactory.CreateConnection();
+
+            const string sql = @"
+        SELECT
+            Id,
+            Account,
+            Password,
+            DisplayName,
+            IsEnabled,
+            CreatedAt,
+            UpdatedAt
+        FROM AdminUser
+        WHERE Account = @Account";
+
             return await connection.QueryFirstOrDefaultAsync<AdminUser>(
-                @"SELECT Id, Account, Password, DisplayName, IsEnabled, CreatedAt, UpdatedAt 
-                  FROM AdminUser 
-                  WHERE Account = @Account",
+                sql,
                 new { Account = account });
         }
 
@@ -33,7 +44,7 @@ namespace EmployeeVoting.Api.Infrastructure.Persistence.Repositories
                 @"SELECT Id, Account, Password, DisplayName, IsEnabled, CreatedAt, UpdatedAt 
                   FROM AdminUser 
                   WHERE Id = @Id",
-                new { Id = id });
+                new { Id = id.ToString("D") });
         }
 
         public async Task<IEnumerable<AdminUser>> GetAllAsync()

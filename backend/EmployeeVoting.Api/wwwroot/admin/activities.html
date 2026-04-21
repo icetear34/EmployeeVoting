@@ -14,8 +14,8 @@
   <nav class="topbar">
     <span class="topbar-logo">VoteSystem</span>
     <div class="nav-switch">
-      <a href="activities.html" class="nav-switch-btn active">活動管理</a>
-      <a href="users.html" class="nav-switch-btn">帳號管理</a>
+      <a href="activities.html" class="nav-switch-item active">活動管理</a>
+      <a href="users.html" class="nav-switch-item">帳號管理</a>
     </div>
     <button class="topbar-action" onclick="doLogout()">登出</button>
   </nav>
@@ -29,9 +29,6 @@
             <label>活動名稱/代碼</label>
             <input type="text" id="search-keyword" class="form-input" placeholder="搜尋活動名稱或代碼" onkeyup="handleSearchKeyup(event)">
           </div>
-          <button class="btn btn-outline btn-sm btn-icon" onclick="searchActivities()" title="搜尋" style="height:42px;width:42px;padding:0;display:flex;align-items:center;justify-content:center">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          </button>
           <div class="form-group" style="margin:0">
             <label>狀態</label>
             <select id="search-status" class="form-input" onchange="searchActivities()">
@@ -41,7 +38,8 @@
               <option value="ended">已結束</option>
             </select>
           </div>
-          <button class="btn btn-sm" onclick="openActivityModal()" style="height:42px;white-space:nowrap">+ 新增活動</button>
+          <button class="btn btn-outline" onclick="searchActivities()">搜尋</button>
+          <button class="btn" onclick="openActivityModal()">+ 新增活動</button>
         </div>
       </div>
     </div>
@@ -84,7 +82,6 @@
       <button class="modal-close" onclick="closeActivityModal()">&times;</button>
     </div>
 
-    <div class="modal-scroll">
     <div class="modal-tabs" id="modal-tabs">
       <button class="modal-tab active" data-tab="basic">基本資料</button>
       <button class="modal-tab" data-tab="voters">可投票名單</button>
@@ -206,7 +203,6 @@
     <div class="modal-footer">
       <button type="button" class="btn" id="save-activity-btn" onclick="saveActivity()">儲存變更</button>
     </div>
-    </div><!-- /.modal-scroll -->
   </div>
 </div>
 
@@ -245,15 +241,20 @@
   // 頁面初始化
   // ═══════════════════════════════════════════════════════════════════════════
   document.addEventListener('DOMContentLoaded', async () => {
-    // 簡單檢查：沒有 token 就跳回登入
-    if (!sessionStorage.getItem('admin_token')) {
-      window.location.href = 'login.html';
-      return;
-    }
+    await checkAdminSession();
     initTabs();
     initResultViewToggle();
     await loadActivities();
   });
+
+  async function checkAdminSession() {
+    try {
+        await ApiUtil.get('/admin-auth/me');
+    } catch (error) {
+      window.location.href = 'login.html';
+      return;
+    }
+  }
 
   function initTabs() {
     const tabs = document.querySelectorAll('.modal-tab');
@@ -284,12 +285,18 @@
     tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--ink-3)">載入中...</td></tr>';
 
     try {
-      const response = await ApiUtil.get('/admin/activities');
+      const params = new URLSearchParams({
+        page: currentPage,
+        pageSize: pageSize
+      });
+      if (keyword) params.append('keyword', keyword);
+      if (status) params.append('status', status);
+
+      const response = await ApiUtil.get(`/admin/activities?${params.toString()}`);
       
-      // 後端直接回傳陣列
-      activities = Array.isArray(response) ? response : (response.items || response.data || []);
-      totalPages = 1;
-      currentPage = 1;
+      activities = response.items || response.data || [];
+      totalPages = response.totalPages || 1;
+      currentPage = response.page || 1;
 
       renderActivityTable();
       renderPagination();
@@ -326,7 +333,8 @@
   }
 
   function renderPagination() {
-    PaginationUtil.render('pagination-container', currentPage, totalPages, 'goToPage');
+    const container = document.getElementById('pagination-container');
+    container.innerHTML = PaginationUtil.render(currentPage, totalPages, 'goToPage');
   }
 
   function goToPage(page) {
@@ -520,9 +528,7 @@
 
       const response = await fetch(API_BASE_URL + '/admin/voters/import-preview', {
         method: 'POST',
-        headers: {
-          'Authorization': 'Bearer ' + CookieUtil.get('admin_session')
-        },
+        credentials: 'include',
         body: formData
       });
 
@@ -585,12 +591,14 @@
 
     container.innerHTML = candidateList.map((cand, idx) => `
       <div class="candidate-edit-row">
-        <div class="candidate-edit-avatar">
+        <div class="candidate-edit-avatar" onclick="triggerCandidateImageUpload(${idx})" title="點擊上傳圖片" style="cursor:pointer;position:relative">
           ${cand.imageUrl 
             ? `<img src="${cand.imageUrl}" alt="">`
-            : (cand.emoji || '👤')
+            : `<span style="font-size:24px">${cand.emoji || '👤'}</span>`
           }
+          <div class="avatar-upload-hint">📷</div>
         </div>
+        <input type="file" id="candidate-img-${idx}" accept="image/*" style="display:none" onchange="handleCandidateImageUpload(event, ${idx})">
         <div class="candidate-edit-fields">
           <input type="text" class="form-input" placeholder="姓名" value="${UIUtil.escapeHtml(cand.name || '')}" onchange="updateCandidate(${idx}, 'name', this.value)">
           <input type="text" class="form-input" placeholder="說明（可選）" value="${UIUtil.escapeHtml(cand.description || '')}" onchange="updateCandidate(${idx}, 'description', this.value)">
@@ -605,6 +613,7 @@
       id: 'new_' + Date.now(),
       name: '',
       description: '',
+      imageUrl: '',
       emoji: '👤'
     });
     renderCandidateList();
@@ -619,6 +628,42 @@
   function removeCandidate(index) {
     candidateList.splice(index, 1);
     renderCandidateList();
+  }
+
+  function triggerCandidateImageUpload(index) {
+    document.getElementById(`candidate-img-${index}`).click();
+  }
+
+  async function handleCandidateImageUpload(event, index) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const avatarEl = event.target.previousElementSibling?.querySelector('.candidate-edit-avatar') 
+      || event.target.parentElement.querySelector('.candidate-edit-avatar');
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/admin/activities/candidates/upload-image', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.message || '上傳失敗');
+      }
+
+      candidateList[index].imageUrl = result.imageUrl;
+      candidateList[index].emoji = '';
+      renderCandidateList();
+    } catch (error) {
+      alert('圖片上傳失敗: ' + error.message);
+    }
+
+    event.target.value = '';
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -779,8 +824,7 @@
         id: c.id?.startsWith('new_') ? null : c.id,
         name: c.name.trim(),
         description: c.description?.trim() || '',
-        imageUrl: c.imageUrl || null,
-        emoji: c.emoji || '👤'
+        imagePath: c.imageUrl || '',
       }))
     };
 
@@ -841,8 +885,7 @@
     } catch (error) {
       // 忽略
     }
-    sessionStorage.removeItem('admin_token');
-    sessionStorage.removeItem('admin_data');
+    // 後端 logout 已清 HttpOnly Cookie
     window.location.href = 'login.html';
   }
 </script>

@@ -61,6 +61,8 @@ namespace EmployeeVoting.Api.Infrastructure.Persistence
                     Id TEXT PRIMARY KEY,
                     VoteActivityId TEXT NOT NULL,
                     EmployeeNo TEXT NOT NULL,
+                    Name TEXT NOT NULL DEFAULT '',
+                    Department TEXT NOT NULL DEFAULT '',
                     BirthDate TEXT NOT NULL,
                     CreatedAt TEXT NOT NULL,
                     FOREIGN KEY (VoteActivityId) REFERENCES VoteActivity(Id)

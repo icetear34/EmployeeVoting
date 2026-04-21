@@ -12,10 +12,17 @@ namespace EmployeeVoting.Api.Application.Services
     public class VoteActivityService : IVoteActivityService
     {
         private readonly IVoteActivityRepository _voteActivityRepository;
+        private readonly ICandidateRepository _candidateRepository;
+        private readonly IEligibleVoterRepository _eligibleVoterRepository;
 
-        public VoteActivityService(IVoteActivityRepository voteActivityRepository)
+        public VoteActivityService(
+            IVoteActivityRepository voteActivityRepository,
+            ICandidateRepository candidateRepository,
+            IEligibleVoterRepository eligibleVoterRepository)
         {
             _voteActivityRepository = voteActivityRepository;
+            _candidateRepository = candidateRepository;
+            _eligibleVoterRepository = eligibleVoterRepository;
         }
 
         /// <inheritdoc/>
@@ -46,17 +53,43 @@ namespace EmployeeVoting.Api.Application.Services
                 return null;
             }
 
-            return MapToDetailResponse(activity);
+            var response = MapToDetailResponse(activity);
+
+            // 載入候選人
+            var candidates = await _candidateRepository.GetByActivityIdAsync(id);
+            response.Candidates = candidates.Select(c => new CandidateListItem
+            {
+                Id = c.Id,
+                Name = c.Name,
+                Description = c.Description,
+                ImageUrl = c.ImagePath,
+                SortOrder = c.SortOrder,
+                IsEnabled = c.IsEnabled,
+                CreatedAt = c.CreatedAt
+            }).ToList();
+
+            // 載入投票名單
+            var voters = await _eligibleVoterRepository.GetByActivityIdAsync(id);
+            response.EligibleVoters = voters.Select(v => new EligibleVoterListItem
+            {
+                Id = v.Id,
+                EmployeeNo = v.EmployeeNo,
+                Name = v.Name,
+                Department = v.Department,
+                BirthDate = v.BirthDate,
+                CreatedAt = v.CreatedAt
+            }).ToList();
+
+            return response;
         }
 
         /// <inheritdoc/>
         public async Task<VoteActivityDetailResponse> CreateActivityAsync(CreateVoteActivityRequest request, string createdBy)
         {
-            // 驗證請求
             ValidateActivityRequest(request.Name, request.StartTime, request.EndTime);
 
-            // 產生活動代號
             var activityCode = await _voteActivityRepository.GenerateActivityCodeAsync();
+            var now = DateTime.UtcNow;
 
             var activity = new VoteActivity
             {
@@ -66,14 +99,48 @@ namespace EmployeeVoting.Api.Application.Services
                 Description = request.Description?.Trim(),
                 StartTime = request.StartTime,
                 EndTime = request.EndTime,
-                CreatedAt = DateTime.UtcNow,
+                CreatedAt = now,
                 CreatedBy = createdBy,
                 IsDeleted = false
             };
 
             await _voteActivityRepository.CreateAsync(activity);
 
-            return MapToDetailResponse(activity);
+            // 建立候選人（如果有）
+            if (request.Candidates?.Any() == true)
+            {
+                var candidates = request.Candidates.Select((c, idx) => new Candidate
+                {
+                    Id = Guid.NewGuid(),
+                    VoteActivityId = activity.Id,
+                    Name = c.Name.Trim(),
+                    Description = c.Description?.Trim() ?? string.Empty,
+                    ImagePath = c.ImagePath?.Trim() ?? string.Empty,
+                    SortOrder = idx + 1,
+                    IsEnabled = true,
+                    CreatedAt = now
+                });
+                await _candidateRepository.BatchCreateAsync(candidates);
+            }
+
+            // 建立投票名單（如果有）
+            if (request.EligibleVoters?.Any() == true)
+            {
+                var voters = request.EligibleVoters.Select(v => new EligibleVoter
+                {
+                    Id = Guid.NewGuid(),
+                    VoteActivityId = activity.Id,
+                    EmployeeNo = v.EmployeeNo.Trim(),
+                    Name = v.Name?.Trim() ?? string.Empty,
+                    Department = v.Department?.Trim() ?? string.Empty,
+                    BirthDate = v.BirthDate.Trim(),
+                    CreatedAt = now
+                });
+                await _eligibleVoterRepository.BatchCreateAsync(voters);
+            }
+
+            // 回傳完整詳情
+            return (await GetActivityByIdAsync(activity.Id))!;
         }
 
         /// <inheritdoc/>
@@ -86,10 +153,8 @@ namespace EmployeeVoting.Api.Application.Services
                 throw new NotFoundException("活動不存在");
             }
 
-            // 驗證請求
             ValidateActivityRequest(request.Name, request.StartTime, request.EndTime);
 
-            // 更新欄位
             activity.Name = request.Name.Trim();
             activity.Description = request.Description?.Trim();
             activity.StartTime = request.StartTime;
@@ -97,7 +162,7 @@ namespace EmployeeVoting.Api.Application.Services
 
             await _voteActivityRepository.UpdateAsync(activity);
 
-            return MapToDetailResponse(activity);
+            return (await GetActivityByIdAsync(id))!;
         }
 
         /// <inheritdoc/>
@@ -113,51 +178,75 @@ namespace EmployeeVoting.Api.Application.Services
             await _voteActivityRepository.SoftDeleteAsync(id);
         }
 
-        /// <summary>
-        /// 驗證活動請求
-        /// </summary>
+        /// <inheritdoc/>
+        public async Task UpdateCandidatesAsync(Guid activityId, UpdateCandidatesRequest request)
+        {
+            var activity = await _voteActivityRepository.GetByIdAsync(activityId);
+            if (activity == null || activity.IsDeleted)
+            {
+                throw new NotFoundException("活動不存在");
+            }
+
+            var now = DateTime.UtcNow;
+            var candidates = request.Candidates.Select((c, idx) => new Candidate
+            {
+                Id = c.Id ?? Guid.NewGuid(),
+                VoteActivityId = activityId,
+                Name = c.Name.Trim(),
+                Description = c.Description?.Trim() ?? string.Empty,
+                ImagePath = c.ImagePath?.Trim() ?? string.Empty,
+                SortOrder = c.SortOrder > 0 ? c.SortOrder : idx + 1,
+                IsEnabled = true,
+                CreatedAt = now
+            });
+
+            await _candidateRepository.ReplaceAllAsync(activityId, candidates);
+        }
+
+        /// <inheritdoc/>
+        public async Task UpdateEligibleVotersAsync(Guid activityId, UpdateEligibleVotersRequest request)
+        {
+            var activity = await _voteActivityRepository.GetByIdAsync(activityId);
+            if (activity == null || activity.IsDeleted)
+            {
+                throw new NotFoundException("活動不存在");
+            }
+
+            var now = DateTime.UtcNow;
+            var voters = request.Voters.Select(v => new EligibleVoter
+            {
+                Id = Guid.NewGuid(),
+                VoteActivityId = activityId,
+                EmployeeNo = v.EmployeeNo.Trim(),
+                Name = v.Name?.Trim() ?? string.Empty,
+                Department = v.Department?.Trim() ?? string.Empty,
+                BirthDate = v.BirthDate.Trim(),
+                CreatedAt = now
+            });
+
+            await _eligibleVoterRepository.ReplaceAllAsync(activityId, voters);
+        }
+
         private void ValidateActivityRequest(string name, DateTime startTime, DateTime endTime)
         {
             if (string.IsNullOrWhiteSpace(name))
-            {
                 throw new ValidationException("活動名稱不可為空");
-            }
 
             if (name.Trim().Length > 100)
-            {
                 throw new ValidationException("活動名稱不可超過 100 字");
-            }
 
             if (endTime <= startTime)
-            {
                 throw new ValidationException("結束時間必須大於開始時間");
-            }
         }
 
-        /// <summary>
-        /// 取得活動狀態文字
-        /// </summary>
         private static string GetActivityStatus(DateTime startTime, DateTime endTime)
         {
             var now = DateTime.UtcNow;
-
-            if (now < startTime)
-            {
-                return "未開始";
-            }
-            else if (now >= startTime && now <= endTime)
-            {
-                return "進行中";
-            }
-            else
-            {
-                return "已結束";
-            }
+            if (now < startTime) return "未開始";
+            if (now <= endTime) return "進行中";
+            return "已結束";
         }
 
-        /// <summary>
-        /// 轉換為詳情回應
-        /// </summary>
         private static VoteActivityDetailResponse MapToDetailResponse(VoteActivity activity)
         {
             return new VoteActivityDetailResponse
