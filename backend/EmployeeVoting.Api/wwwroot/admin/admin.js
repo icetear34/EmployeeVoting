@@ -38,6 +38,7 @@ const AdminUtil = {
    * 清除管理員登入資料
    */
   clearAuth() {
+    CookieUtil.remove('admin_logged_in');
     sessionStorage.removeItem('admin_data');
   },
 
@@ -443,4 +444,21 @@ const ValidationUtil = {
     }
     return { valid: true, message: '' };
   }
+};
+
+
+window.AdminPage = {
+  async requireAuth() {
+    const admin = await AdminUtil.checkAuth();
+    if (!admin) {
+      CookieUtil.remove('admin_logged_in');
+      window.location.href = 'login.html';
+      return false;
+    }
+    return true;
+  }
+};
+
+window.doLogout = async function doLogout() {
+  await AdminUtil.logout();
 };

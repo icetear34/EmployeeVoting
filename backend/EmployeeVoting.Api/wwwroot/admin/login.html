@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
@@ -9,7 +9,6 @@
   <link rel="stylesheet" href="admin.css">
 </head>
 <body>
-
 <div class="screen active">
   <nav class="topbar">
     <span class="topbar-logo">VoteSystem</span>
@@ -21,7 +20,6 @@
     <div class="card" style="max-width:400px;margin:80px auto;">
       <div class="card-body">
         <h2 style="text-align:center;margin-bottom:24px;font-weight:500">管理員登入</h2>
-
         <div id="login-error" class="banner banner-error" style="display:none"></div>
 
         <form id="login-form" onsubmit="return handleLogin(event)">
@@ -57,26 +55,35 @@
   let captchaKey = '';
 
   document.addEventListener('DOMContentLoaded', async () => {
-    // 嘗試呼叫 /me 確認是否已登入（靠 HttpOnly Cookie）
-    try {
-      await ApiUtil.get('/admin-auth/me');
-      window.location.href = 'activities.html';
-      return;
-    } catch (e) {
-      // 未登入，顯示登入頁
+    if (CookieUtil.get('admin_logged_in')) {
+      try {
+        await ApiUtil.get('/admin-auth/me');
+        window.location.href = 'activities.html';
+        return;
+      } catch (error) {
+        CookieUtil.remove('admin_logged_in');
+      }
     }
-    refreshCaptcha();
+
+    await refreshCaptcha();
   });
 
   async function refreshCaptcha() {
-    const result = await CaptchaUtil.fetch();
-    captchaKey = result.key;
-    document.getElementById('captcha-img').src = result.imageDataUrl;
-    document.getElementById('captcha-code').value = '';
+    try {
+      const result = await CaptchaUtil.fetch();
+      captchaKey = result.key;
+      document.getElementById('captcha-img').src = result.imageDataUrl;
+      document.getElementById('captcha-code').value = '';
+    } catch (error) {
+      const errorEl = document.getElementById('login-error');
+      errorEl.textContent = '驗證碼載入失敗';
+      errorEl.style.display = 'block';
+    }
   }
 
   async function handleLogin(event) {
     event.preventDefault();
+
     const errorEl = document.getElementById('login-error');
     errorEl.style.display = 'none';
 
@@ -95,19 +102,22 @@
     btn.textContent = '登入中...';
 
     try {
-      const resp = await ApiUtil.post('/admin-auth/login', {
-        account, password, captchaId: captchaKey, captchaCode
+      await ApiUtil.post('/admin-auth/login', {
+        account,
+        password,
+        captchaId: captchaKey,
+        captchaCode
       });
-      // 後端已設 HttpOnly Cookie，直接跳轉
       window.location.href = 'activities.html';
-    } catch (err) {
-      errorEl.textContent = err.message || '登入失敗';
+    } catch (error) {
+      errorEl.textContent = error.message || '登入失敗';
       errorEl.style.display = 'block';
-      refreshCaptcha();
+      await refreshCaptcha();
     } finally {
       btn.disabled = false;
       btn.textContent = '登入';
     }
+
     return false;
   }
 </script>

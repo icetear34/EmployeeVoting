@@ -173,11 +173,8 @@
   // 頁面初始化
   // ═══════════════════════════════════════════════════════════════════════════
   document.addEventListener('DOMContentLoaded', async () => {
-    // 簡單檢查：沒有 token 就跳回登入
-    if (!sessionStorage.getItem('admin_token')) {
-      window.location.href = 'login.html';
-      return;
-    }
+    const ok = await AdminPage.requireAuth();
+    if (!ok) return;
     await loadUsers();
   });
 
@@ -453,19 +450,6 @@
     }
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // 登出
-  // ═══════════════════════════════════════════════════════════════════════════
-  async function doLogout() {
-    try {
-      await ApiUtil.post('/admin-auth/logout', {});
-    } catch (error) {
-      // 忽略
-    }
-    sessionStorage.removeItem('admin_token');
-    sessionStorage.removeItem('admin_data');
-    window.location.href = 'login.html';
-  }
 </script>
 
 </body>
