@@ -1,0 +1,72 @@
+/* Page-specific styles for admin/activities.html */
+
+/* Scope styles to the activity modal only to avoid affecting other modals on the page */
+#activity-modal.modal-overlay {
+  /* keep behavior consistent with shared modal overlay but allow different sizing */
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  backdrop-filter: blur(3px);
+  z-index: 300; /* slightly above default shared overlay */
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+  overflow: auto;
+}
+
+#activity-modal.modal-overlay.show {
+  display: flex;
+}
+
+/* Larger modal appearance for activity editor */
+#activity-modal .modal.activity-modal {
+  width: 760px;
+  max-width: 100%;
+  max-height: 90vh;
+  overflow: auto;
+  border-radius: 8px;
+  background: white;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  padding: 24px;
+}
+
+/* Make modal body scrollable while keeping header/footer accessible */
+#activity-modal .modal-body {
+  max-height: calc(90vh - 160px);
+  overflow: auto;
+  padding: 8px 0 0 0;
+}
+
+/* Keep header visible */
+#activity-modal .modal-header {
+  position: sticky;
+  top: 0;
+  background: transparent;
+  z-index: 2;
+}
+
+@media (max-width: 640px) {
+  #activity-modal .modal.activity-modal { width: 100%; height: auto; max-height: 96vh; }
+  #activity-modal .modal-body { max-height: calc(96vh - 140px); }
+}
+
+/* Ensure delete confirmation modal appears above the activity modal when both are shown */
+#delete-modal.modal-overlay {
+  z-index: 1200; /* higher than #activity-modal */
+}
+
+/* Make sure activity modal's tab bar is visible and scrollable */
+#activity-modal .modal-tabs {
+  display: flex !important;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--border);
+  background: #fff;
+  overflow-x: auto;
+}
+
+#activity-modal .tab-content { display: none; }
+#activity-modal .tab-content.active { display: block; }
