@@ -1,5 +1,41 @@
 /* Page-specific styles for admin/activities.html */
 
+/* 搜尋列：讓帶 label 的 form-group 與無 label 的按鈕底部對齊 */
+.activity-search-row .form-group {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+/* 搜尋列統一 input / select / button 高度 */
+.activity-search-row input.form-input,
+.activity-search-row select.form-input {
+  height: 44px;
+  box-sizing: border-box;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.activity-search-row .btn {
+  height: 44px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 0;
+  padding-bottom: 0;
+  flex-shrink: 0;
+  margin-bottom: 0;
+}
+
+/* 操作欄按鈕容器 */
+.action-cell {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
 /* Scope styles to the activity modal only to avoid affecting other modals on the page */
 #activity-modal.modal-overlay {
   /* keep behavior consistent with shared modal overlay but allow different sizing */

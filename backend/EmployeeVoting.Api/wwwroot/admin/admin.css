@@ -2,6 +2,33 @@
    員工投票系統 - 管理端樣式
    ═══════════════════════════════════════════════════════════════════════════ */
 
+/* ─── 搜尋列共用：input / select / button 同高對齊 ─── */
+.user-search-row .form-group {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.user-search-row input.form-input,
+.user-search-row select.form-input {
+  height: 44px;
+  box-sizing: border-box;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.user-search-row .btn {
+  height: 44px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 0;
+  padding-bottom: 0;
+  flex-shrink: 0;
+  margin-bottom: 0;
+}
+
 /* ─── Admin Layout ─── */
 .admin-main {
   flex: 1;
