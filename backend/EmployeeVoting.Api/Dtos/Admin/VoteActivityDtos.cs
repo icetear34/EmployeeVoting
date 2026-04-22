@@ -157,4 +157,40 @@ namespace EmployeeVoting.Api.Dtos.Admin
         /// </summary>
         public List<EligibleVoterListItem> EligibleVoters { get; set; } = new();
     }
+
+    /// <summary>
+    /// 活動列表查詢條件
+    /// </summary>
+    public class ActivityQueryRequest
+    {
+        /// <summary>文字搜尋（活動名稱）</summary>
+        public string? Keyword { get; set; }
+
+        /// <summary>狀態過濾：pending / active / ended（空白 = 全部）</summary>
+        public string? Status { get; set; }
+
+        /// <summary>排序欄位：createdAt / startTime / endTime / name（預設 createdAt）</summary>
+        public string? SortBy { get; set; } = "createdAt";
+
+        /// <summary>排序方向：asc / desc（預設 desc）</summary>
+        public string? SortDir { get; set; } = "desc";
+
+        /// <summary>頁碼（從 1 開始）</summary>
+        public int Page { get; set; } = 1;
+
+        /// <summary>每頁筆數（預設 10，最大 100）</summary>
+        public int PageSize { get; set; } = 10;
+    }
+
+    /// <summary>
+    /// 分頁結果包裝
+    /// </summary>
+    public class PagedResult<T>
+    {
+        public IEnumerable<T> Items { get; set; } = Enumerable.Empty<T>();
+        public int TotalCount { get; set; }
+        public int Page { get; set; }
+        public int PageSize { get; set; }
+        public int TotalPages => (int)Math.Ceiling((double)TotalCount / PageSize);
+    }
 }

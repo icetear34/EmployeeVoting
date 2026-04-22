@@ -1,4 +1,5 @@
 using EmployeeVoting.Api.Domain.Entities;
+using EmployeeVoting.Api.Dtos.Admin;
 
 namespace EmployeeVoting.Api.Application.Interfaces
 {
@@ -11,6 +12,12 @@ namespace EmployeeVoting.Api.Application.Interfaces
         Task<VoteActivity?> GetByActivityCodeAsync(string activityCode);
         Task<IEnumerable<VoteActivity>> GetAllAsync(bool includeDeleted = false);
         Task<IEnumerable<VoteActivity>> GetActiveActivitiesAsync();
+
+        /// <summary>
+        /// 分頁查詢（含搜尋、狀態過濾、排序）
+        /// </summary>
+        Task<(IEnumerable<VoteActivity> Items, int TotalCount)> GetPagedAsync(ActivityQueryRequest query);
+
         Task<Guid> CreateAsync(VoteActivity activity);
         Task UpdateAsync(VoteActivity activity);
         Task SoftDeleteAsync(Guid id);

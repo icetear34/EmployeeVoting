@@ -26,14 +26,36 @@ namespace EmployeeVoting.Api.Controllers
         }
 
         /// <summary>
-        /// 取得所有活動列表
+        /// 取得活動列表（分頁 + 搜尋 + 狀態過濾 + 排序）
         /// </summary>
+        /// <param name="keyword">文字搜尋（活動名稱）</param>
+        /// <param name="status">狀態：pending / active / ended</param>
+        /// <param name="sortBy">排序欄位：createdAt / startTime / endTime / name</param>
+        /// <param name="sortDir">排序方向：asc / desc</param>
+        /// <param name="page">頁碼（從 1 開始）</param>
+        /// <param name="pageSize">每頁筆數（預設 10，最大 100）</param>
         [HttpGet]
-        [ProducesResponseType(typeof(IEnumerable<VoteActivityListItem>), StatusCodes.Status200OK)]
-        public async Task<IActionResult> GetActivities()
+        [ProducesResponseType(typeof(PagedResult<VoteActivityListItem>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetActivities(
+            [FromQuery] string? keyword,
+            [FromQuery] string? status,
+            [FromQuery] string? sortBy   = "createdAt",
+            [FromQuery] string? sortDir  = "desc",
+            [FromQuery] int     page     = 1,
+            [FromQuery] int     pageSize = 10)
         {
-            var activities = await _voteActivityService.GetAllActivitiesAsync();
-            return Ok(activities);
+            var query = new ActivityQueryRequest
+            {
+                Keyword  = keyword,
+                Status   = status,
+                SortBy   = sortBy,
+                SortDir  = sortDir,
+                Page     = page,
+                PageSize = pageSize
+            };
+
+            var result = await _voteActivityService.GetActivitiesAsync(query);
+            return Ok(result);
         }
 
         /// <summary>

@@ -53,9 +53,9 @@
         <table class="table">
           <thead>
             <tr>
-              <th>活動名稱</th>
-              <th>開始時間</th>
-              <th>結束時間</th>
+              <th onclick="toggleSort('name')" style="cursor:pointer">活動名稱 <span id="sort-name"></span></th>
+              <th onclick="toggleSort('startTime')" style="cursor:pointer">開始時間 <span id="sort-startTime"></span></th>
+              <th onclick="toggleSort('endTime')" style="cursor:pointer">結束時間 <span id="sort-endTime"></span></th>
               <th>狀態</th>
               <th style="width:120px">操作</th>
             </tr>
@@ -268,32 +268,37 @@
   // ═══════════════════════════════════════════════════════════════════════════
   // 活動列表
   // ═══════════════════════════════════════════════════════════════════════════
+  let sortBy  = 'createdAt';
+  let sortDir = 'desc';
+
   async function loadActivities() {
     const keyword = document.getElementById('search-keyword').value.trim();
-    const status = document.getElementById('search-status').value;
+    const status  = document.getElementById('search-status').value;
 
     const tbody = document.getElementById('activity-table-body');
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--ink-3)">載入中...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--ink-3)">載入中...</td></tr>';
 
     try {
-      const params = new URLSearchParams({
-        page: currentPage,
-        pageSize: pageSize
-      });
-      if (keyword) params.append('keyword', keyword);
-      if (status) params.append('status', status);
+      const params = new URLSearchParams();
+      if (keyword)  params.set('keyword',  keyword);
+      if (status)   params.set('status',   status);
+      params.set('sortBy',   sortBy);
+      params.set('sortDir',  sortDir);
+      params.set('page',     currentPage);
+      params.set('pageSize', pageSize);
 
+      // 後端回傳 PagedResult<VoteActivityListItem>
       const response = await ApiUtil.get(`/admin/activities?${params.toString()}`);
-      
-      activities = response.items || response.data || [];
-      totalPages = response.totalPages || 1;
-      currentPage = response.page || 1;
+
+      activities  = response.items  || [];
+      totalPages  = response.totalPages ?? 1;
+      currentPage = response.page       ?? 1;
 
       renderActivityTable();
       renderPagination();
 
     } catch (error) {
-      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--danger)">${error.message || '載入失敗'}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--danger)">${error.message || '載入失敗'}</td></tr>`;
     }
   }
 
@@ -340,9 +345,23 @@
   }
 
   function handleSearchKeyup(event) {
-    if (event.key === 'Enter') {
-      searchActivities();
+    if (event.key === 'Enter') searchActivities();
+  }
+
+  function toggleSort(col) {
+    if (sortBy === col) {
+      sortDir = sortDir === 'desc' ? 'asc' : 'desc';
+    } else {
+      sortBy  = col;
+      sortDir = 'desc';
     }
+    // 更新排序指示符
+    ['name', 'startTime', 'endTime'].forEach(c => {
+      const el = document.getElementById(`sort-${c}`);
+      if (el) el.textContent = c === sortBy ? (sortDir === 'asc' ? '▲' : '▼') : '';
+    });
+    currentPage = 1;
+    loadActivities();
   }
 
   // ═══════════════════════════════════════════════════════════════════════════

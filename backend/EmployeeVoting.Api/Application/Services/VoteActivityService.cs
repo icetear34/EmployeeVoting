@@ -26,6 +26,32 @@ namespace EmployeeVoting.Api.Application.Services
         }
 
         /// <inheritdoc/>
+        public async Task<PagedResult<VoteActivityListItem>> GetActivitiesAsync(ActivityQueryRequest query)
+        {
+            var (items, total) = await _voteActivityRepository.GetPagedAsync(query);
+
+            var page     = Math.Max(1, query.Page);
+            var pageSize = Math.Clamp(query.PageSize, 1, 100);
+
+            return new PagedResult<VoteActivityListItem>
+            {
+                Items = items.Select(a => new VoteActivityListItem
+                {
+                    Id          = a.Id,
+                    Name        = a.Name,
+                    Description = a.Description,
+                    StartTime   = a.StartTime,
+                    EndTime     = a.EndTime,
+                    Status      = GetActivityStatus(a.StartTime, a.EndTime),
+                    CreatedAt   = a.CreatedAt
+                }),
+                TotalCount = total,
+                Page       = page,
+                PageSize   = pageSize
+            };
+        }
+
+        /// <inheritdoc/>
         public async Task<IEnumerable<VoteActivityListItem>> GetAllActivitiesAsync()
         {
             var activities = await _voteActivityRepository.GetAllAsync(includeDeleted: false);

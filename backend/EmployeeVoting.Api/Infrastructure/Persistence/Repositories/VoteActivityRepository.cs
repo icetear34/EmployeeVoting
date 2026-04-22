@@ -1,6 +1,7 @@
 using Dapper;
 using EmployeeVoting.Api.Application.Interfaces;
 using EmployeeVoting.Api.Domain.Entities;
+using EmployeeVoting.Api.Dtos.Admin;
 
 namespace EmployeeVoting.Api.Infrastructure.Persistence.Repositories
 {
@@ -104,10 +105,13 @@ namespace EmployeeVoting.Api.Infrastructure.Persistence.Repositories
             
             const string sql = @"
                 UPDATE VoteActivity 
-                SET Name = @Name, 
-                    Description = @Description, 
-                    StartTime = @StartTime, 
-                    EndTime = @EndTime
+                SET Name                 = @Name, 
+                    Description          = @Description, 
+                    StartTime            = @StartTime, 
+                    EndTime              = @EndTime,
+                    IsResultViewable     = @IsResultViewable,
+                    ResultViewStartTime  = @ResultViewStartTime,
+                    ResultViewEndTime    = @ResultViewEndTime
                 WHERE Id = @Id";
             
             await connection.ExecuteAsync(sql, activity);
@@ -141,6 +145,63 @@ namespace EmployeeVoting.Api.Infrastructure.Persistence.Repositories
             var count = await connection.ExecuteScalarAsync<int>(sql, new { ActivityCode = activityCode, ExcludeId = excludeId });
             
             return count > 0;
+        }
+
+        /// <inheritdoc/>
+        public async Task<(IEnumerable<VoteActivity> Items, int TotalCount)> GetPagedAsync(ActivityQueryRequest query)
+        {
+            using var connection = _connectionFactory.CreateConnection();
+
+            // 正規化參數
+            var page     = Math.Max(1, query.Page);
+            var pageSize = Math.Clamp(query.PageSize, 1, 100);
+            var keyword  = query.Keyword?.Trim();
+
+            // 排序白名單
+            var sortCol = (query.SortBy?.ToLower()) switch
+            {
+                "starttime" => "StartTime",
+                "endtime"   => "EndTime",
+                "name"      => "Name",
+                _           => "CreatedAt"
+            };
+            var sortDir = query.SortDir?.ToLower() == "asc" ? "ASC" : "DESC";
+
+            // 狀態轉為時間條件（SQLite 以 datetime() 比較）
+            var statusWhere = (query.Status?.ToLower()) switch
+            {
+                "pending" => "AND datetime('now') < datetime(StartTime)",
+                "active"  => "AND datetime('now') >= datetime(StartTime) AND datetime('now') <= datetime(EndTime)",
+                "ended"   => "AND datetime('now') > datetime(EndTime)",
+                _         => ""
+            };
+
+            var keywordWhere = string.IsNullOrEmpty(keyword) ? "" : "AND Name LIKE @Keyword";
+
+            var baseWhere = $"WHERE IsDeleted = 0 {statusWhere} {keywordWhere}";
+
+            var countSql = $"SELECT COUNT(1) FROM VoteActivity {baseWhere}";
+
+            var dataSql = $@"
+                SELECT Id, ActivityCode, Name, Description, StartTime, EndTime,
+                       CreatedAt, CreatedBy, IsDeleted,
+                       IsResultViewable, ResultViewStartTime, ResultViewEndTime
+                FROM VoteActivity
+                {baseWhere}
+                ORDER BY {sortCol} {sortDir}
+                LIMIT @PageSize OFFSET @Offset";
+
+            var param = new
+            {
+                Keyword  = string.IsNullOrEmpty(keyword) ? null : $"%{keyword}%",
+                PageSize = pageSize,
+                Offset   = (page - 1) * pageSize
+            };
+
+            var total = await connection.ExecuteScalarAsync<int>(countSql, param);
+            var items = await connection.QueryAsync<VoteActivity>(dataSql, param);
+
+            return (items, total);
         }
 
         /// <inheritdoc/>
