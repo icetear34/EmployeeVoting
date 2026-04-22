@@ -6,7 +6,6 @@ namespace EmployeeVoting.Api.Dtos.Admin
     public class VoteActivityListItem
     {
         public Guid Id { get; set; }
-        public string ActivityCode { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         public DateTime StartTime { get; set; }
@@ -20,10 +19,26 @@ namespace EmployeeVoting.Api.Dtos.Admin
     /// </summary>
     public class CreateVoteActivityRequest
     {
-        public string Name { get; set; } = string.Empty;
+        public string ActivityName { get; set; } = string.Empty;
         public string? Description { get; set; }
+
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }
+
+        /// <summary>
+        /// 是否允許投票人查閱結果
+        /// </summary>
+        public bool IsResultViewable { get; set; }
+
+        /// <summary>
+        /// 結果查閱開始時間
+        /// </summary>
+        public DateTime? ResultViewStartTime { get; set; }
+
+        /// <summary>
+        /// 結果查閱結束時間
+        /// </summary>
+        public DateTime? ResultViewEndTime { get; set; }
 
         /// <summary>
         /// 候選人列表（可為空，之後再補）
@@ -54,6 +69,10 @@ namespace EmployeeVoting.Api.Dtos.Admin
         public string EmployeeNo { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string Department { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 生日，供登入驗證使用
+        /// </summary>
         public string BirthDate { get; set; } = string.Empty;
     }
 
@@ -66,6 +85,10 @@ namespace EmployeeVoting.Api.Dtos.Admin
         public string? Description { get; set; }
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }
+
+        public bool IsResultViewable { get; set; }
+        public DateTime? ResultViewStartTime { get; set; }
+        public DateTime? ResultViewEndTime { get; set; }
     }
 
     /// <summary>
@@ -113,7 +136,6 @@ namespace EmployeeVoting.Api.Dtos.Admin
     public class VoteActivityDetailResponse
     {
         public Guid Id { get; set; }
-        public string ActivityCode { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         public DateTime StartTime { get; set; }
@@ -121,6 +143,9 @@ namespace EmployeeVoting.Api.Dtos.Admin
         public string Status { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
         public string CreatedBy { get; set; } = string.Empty;
+        public bool IsResultViewable { get; set; }
+        public DateTime? ResultViewStartTime { get; set; }
+        public DateTime? ResultViewEndTime { get; set; }
 
         /// <summary>
         /// 候選人列表

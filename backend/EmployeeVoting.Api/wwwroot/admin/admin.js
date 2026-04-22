@@ -447,17 +447,33 @@ const ValidationUtil = {
 };
 
 
-window.AdminPage = {
-  async requireAuth() {
-    const admin = await AdminUtil.checkAuth();
-    if (!admin) {
-      CookieUtil.remove('admin_logged_in');
-      window.location.href = 'login.html';
-      return false;
+const AdminPage = {
+    async requireAuth() {
+        try {
+            await ApiUtil.get('/admin-auth/me');
+            return true;
+        } catch (error) {
+            sessionStorage.removeItem('admin_data');
+            CookieUtil.remove('admin_logged_in');
+            window.location.href = 'login.html';
+            return false;
+        }
+    },
+
+    async logout() {
+        try {
+            await ApiUtil.post('/admin-auth/logout', {});
+        } catch (_) {
+        }
+        sessionStorage.removeItem('admin_data');
+        CookieUtil.remove('admin_logged_in');
+        window.location.href = 'login.html';
     }
-    return true;
-  }
 };
+
+function doLogout() {
+    return AdminPage.logout();
+}
 
 window.doLogout = async function doLogout() {
   await AdminUtil.logout();

@@ -14,6 +14,9 @@ namespace EmployeeVoting.Api.Domain.Entities
         public DateTime CreatedAt { get; set; }
         public string CreatedBy { get; set; } = string.Empty;
         public bool IsDeleted { get; set; }
+        public bool IsResultViewable { get;  set; }
+        public DateTime? ResultViewStartTime { get;  set; }
+        public DateTime? ResultViewEndTime { get;  set; }
     }
 
     /// <summary>

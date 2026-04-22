@@ -33,7 +33,6 @@ namespace EmployeeVoting.Api.Application.Services
             return activities.Select(a => new VoteActivityListItem
             {
                 Id = a.Id,
-                ActivityCode = a.ActivityCode,
                 Name = a.Name,
                 Description = a.Description,
                 StartTime = a.StartTime,
@@ -86,7 +85,7 @@ namespace EmployeeVoting.Api.Application.Services
         /// <inheritdoc/>
         public async Task<VoteActivityDetailResponse> CreateActivityAsync(CreateVoteActivityRequest request, string createdBy)
         {
-            ValidateActivityRequest(request.Name, request.StartTime, request.EndTime);
+            ValidateActivityRequest(request.ActivityName, request.StartTime, request.EndTime, request.IsResultViewable,request.ResultViewStartTime,request.ResultViewEndTime);
 
             var activityCode = await _voteActivityRepository.GenerateActivityCodeAsync();
             var now = DateTime.UtcNow;
@@ -95,10 +94,13 @@ namespace EmployeeVoting.Api.Application.Services
             {
                 Id = Guid.NewGuid(),
                 ActivityCode = activityCode,
-                Name = request.Name.Trim(),
+                Name = request.ActivityName.Trim(),
                 Description = request.Description?.Trim(),
                 StartTime = request.StartTime,
                 EndTime = request.EndTime,
+                IsResultViewable = request.IsResultViewable,
+                ResultViewStartTime = request.ResultViewStartTime,
+                ResultViewEndTime = request.ResultViewEndTime,
                 CreatedAt = now,
                 CreatedBy = createdBy,
                 IsDeleted = false
@@ -153,12 +155,15 @@ namespace EmployeeVoting.Api.Application.Services
                 throw new NotFoundException("活動不存在");
             }
 
-            ValidateActivityRequest(request.Name, request.StartTime, request.EndTime);
+            ValidateActivityRequest(request.Name, request.StartTime, request.EndTime, request.IsResultViewable, request.ResultViewStartTime, request.ResultViewEndTime);
 
             activity.Name = request.Name.Trim();
             activity.Description = request.Description?.Trim();
             activity.StartTime = request.StartTime;
             activity.EndTime = request.EndTime;
+            activity.IsResultViewable = request.IsResultViewable;
+            activity.ResultViewStartTime = request.ResultViewStartTime;
+            activity.ResultViewEndTime = request.ResultViewEndTime;
 
             await _voteActivityRepository.UpdateAsync(activity);
 
@@ -227,7 +232,13 @@ namespace EmployeeVoting.Api.Application.Services
             await _eligibleVoterRepository.ReplaceAllAsync(activityId, voters);
         }
 
-        private void ValidateActivityRequest(string name, DateTime startTime, DateTime endTime)
+        private void ValidateActivityRequest(
+    string name,
+    DateTime startTime,
+    DateTime endTime,
+    bool isResultViewable,
+    DateTime? resultViewStartTime,
+    DateTime? resultViewEndTime)
         {
             if (string.IsNullOrWhiteSpace(name))
                 throw new ValidationException("活動名稱不可為空");
@@ -237,6 +248,15 @@ namespace EmployeeVoting.Api.Application.Services
 
             if (endTime <= startTime)
                 throw new ValidationException("結束時間必須大於開始時間");
+
+            if (isResultViewable)
+            {
+                if (!resultViewStartTime.HasValue || !resultViewEndTime.HasValue)
+                    throw new ValidationException("啟用結果查閱時，必須填寫查閱開始與結束時間");
+
+                if (resultViewEndTime <= resultViewStartTime)
+                    throw new ValidationException("結果查閱結束時間必須大於開始時間");
+            }
         }
 
         private static string GetActivityStatus(DateTime startTime, DateTime endTime)
@@ -252,14 +272,16 @@ namespace EmployeeVoting.Api.Application.Services
             return new VoteActivityDetailResponse
             {
                 Id = activity.Id,
-                ActivityCode = activity.ActivityCode,
                 Name = activity.Name,
                 Description = activity.Description,
                 StartTime = activity.StartTime,
                 EndTime = activity.EndTime,
                 Status = GetActivityStatus(activity.StartTime, activity.EndTime),
                 CreatedAt = activity.CreatedAt,
-                CreatedBy = activity.CreatedBy
+                CreatedBy = activity.CreatedBy,
+                IsResultViewable = activity.IsResultViewable,
+                ResultViewStartTime = activity.ResultViewStartTime,
+                ResultViewEndTime = activity.ResultViewEndTime
             };
         }
     }

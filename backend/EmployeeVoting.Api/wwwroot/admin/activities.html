@@ -27,8 +27,8 @@
       <div class="card-body" style="padding:16px">
         <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
           <div class="form-group" style="margin:0;flex:1;min-width:200px">
-            <label>活動名稱/代碼</label>
-            <input type="text" id="search-keyword" class="form-input" placeholder="搜尋活動名稱或代碼" onkeyup="handleSearchKeyup(event)">
+            <label>活動名稱</label>
+            <input type="text" id="search-keyword" class="form-input" placeholder="搜尋活動名稱" onkeyup="handleSearchKeyup(event)">
           </div>
           <div class="form-group" style="margin:0">
             <label>狀態</label>
@@ -53,7 +53,6 @@
         <table class="table">
           <thead>
             <tr>
-              <th>活動代碼</th>
               <th>活動名稱</th>
               <th>開始時間</th>
               <th>結束時間</th>
@@ -105,11 +104,7 @@
           <tr>
             <th>說明</th>
             <td><textarea id="activity-desc" rows="3" placeholder="請輸入活動說明（可選）"></textarea></td>
-          </tr>
-          <tr>
-            <th>活動代號</th>
-            <td><input type="text" id="activity-code" class="form-input" placeholder="例：VOTE-20260416-0001" style="color:var(--ink-3)"></td>
-          </tr>
+          </tr>         
           <tr>
             <th>開始時間</th>
             <td><input type="datetime-local" id="activity-start" class="form-input"></td>
@@ -170,12 +165,13 @@
         <div id="voter-list-wrap" style="max-height:300px;overflow-y:auto">
           <table class="table table-sm" id="voter-table">
             <thead>
-              <tr>
-                <th>員工編號</th>
-                <th>姓名</th>
-                <th>部門</th>
-                <th style="width:60px">操作</th>
-              </tr>
+                <tr>
+                    <th>員工編號</th>
+                    <th>姓名</th>
+                    <th>部門</th>
+                    <th>生日</th>
+                    <th style="width:60px">操作</th>
+                </tr>
             </thead>
             <tbody id="voter-table-body">
               <tr><td colspan="4" style="text-align:center;color:var(--ink-3)">尚無投票人員</td></tr>
@@ -305,7 +301,7 @@
     const tbody = document.getElementById('activity-table-body');
     
     if (activities.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--ink-3)">尚無活動資料</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--ink-3)">尚無活動資料</td></tr>';
       return;
     }
 
@@ -313,7 +309,6 @@
       const status = UIUtil.getActivityStatus(act.startTime, act.endTime);
       return `
         <tr>
-          <td><code>${UIUtil.escapeHtml(act.activityCode || act.code)}</code></td>
           <td>${UIUtil.escapeHtml(act.activityName || act.name)}</td>
           <td>${UIUtil.formatDateTime(act.startTime)}</td>
           <td>${UIUtil.formatDateTime(act.endTime)}</td>
@@ -361,7 +356,6 @@
     document.getElementById('activity-id').value = '';
     document.getElementById('activity-name').value = '';
     document.getElementById('activity-desc').value = '';
-    document.getElementById('activity-code').value = '';
     document.getElementById('activity-start').value = '';
     document.getElementById('activity-end').value = '';
     document.getElementById('is-result-viewable').checked = false;
@@ -403,7 +397,6 @@
         document.getElementById('activity-id').value = activity.id;
         document.getElementById('activity-name').value = activity.activityName || activity.name || '';
         document.getElementById('activity-desc').value = activity.description || '';
-        document.getElementById('activity-code').value = activity.activityCode || activity.code || '';
         document.getElementById('activity-start').value = formatDateTimeLocal(activity.startTime);
         document.getElementById('activity-end').value = formatDateTimeLocal(activity.endTime);
 
@@ -491,7 +484,7 @@
 
     const tbody = document.getElementById('voter-table-body');
     if (voterList.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--ink-3)">尚無投票人員</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--ink-3)">尚無投票人員</td></tr>';
       return;
     }
 
@@ -500,6 +493,7 @@
         <td>${UIUtil.escapeHtml(voter.employeeNo)}</td>
         <td>${UIUtil.escapeHtml(voter.name || '-')}</td>
         <td>${UIUtil.escapeHtml(voter.department || '-')}</td>
+        <td>${UIUtil.escapeHtml(voter.birthDate || '-')}</td>
         <td><button class="btn btn-outline btn-sm btn-danger" onclick="removeVoter(${idx})">移除</button></td>
       </tr>
     `).join('');
@@ -521,13 +515,7 @@
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch(API_BASE_URL + '/admin/voters/import-preview', {
-        method: 'POST',
-        credentials: 'include',
-        body: formData
-      });
-
-      const result = await response.json();
+      const result = await ActivityApi.importVotersPreview(file);
 
       if (!response.ok) {
         throw new Error(result.message || '匯入失敗');
@@ -560,17 +548,6 @@
     event.target.value = '';
   }
 
-  function downloadVoterTemplate() {
-    // 建立範本 CSV
-    const csv = 'employeeNo,name,department\nEMP001,王小明,研發部\nEMP002,李小華,行銷部';
-    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'voter_template.csv';
-    a.click();
-    URL.revokeObjectURL(url);
-  }
 
   // ═══════════════════════════════════════════════════════════════════════════
   // 候選人管理
@@ -775,7 +752,6 @@
   // ═══════════════════════════════════════════════════════════════════════════
   async function saveActivity() {
     const id = document.getElementById('activity-id').value;
-    const code = document.getElementById('activity-code').value.trim();
     const name = document.getElementById('activity-name').value.trim();
     const description = document.getElementById('activity-desc').value.trim();
     const startTime = document.getElementById('activity-start').value;
@@ -805,23 +781,34 @@
     const btn = document.getElementById('save-activity-btn');
     UIUtil.setLoading(btn, true);
 
-    const payload = {
-      activityCode: code,
-      activityName: name,
-      description,
-      startTime: new Date(startTime).toISOString(),
-      endTime: new Date(endTime).toISOString(),
-      isResultViewable,
-      resultViewStartTime: isResultViewable && resultViewStartTime ? new Date(resultViewStartTime).toISOString() : null,
-      resultViewEndTime: isResultViewable && resultViewEndTime ? new Date(resultViewEndTime).toISOString() : null,
-      eligibleVoters: voterList,
-      candidates: validCandidates.map(c => ({
-        id: c.id?.startsWith('new_') ? null : c.id,
-        name: c.name.trim(),
-        description: c.description?.trim() || '',
-        imagePath: c.imageUrl || '',
-      }))
-    };
+      const payload = {
+          activityName: name.trim(),
+          description: description?.trim() || '',
+          startTime: new Date(startTime).toISOString(),
+          endTime: new Date(endTime).toISOString(),
+          isResultViewable,
+          resultViewStartTime:
+              isResultViewable && resultViewStartTime
+                  ? new Date(resultViewStartTime).toISOString()
+                  : null,
+          resultViewEndTime:
+              isResultViewable && resultViewEndTime
+                  ? new Date(resultViewEndTime).toISOString()
+                  : null,
+
+          eligibleVoters: voterList.map(v => ({
+              employeeNo: v.employeeNo?.trim() || '',
+              name: v.name?.trim() || '',
+              department: v.department?.trim() || '',
+              birthDate: v.birthDate?.trim() || ''
+          })),
+
+          candidates: validCandidates.map(c => ({
+              name: c.name.trim(),
+              description: c.description?.trim() || '',
+              imagePath: c.imageUrl || ''
+          }))
+      };
 
     try {
       if (id) {
