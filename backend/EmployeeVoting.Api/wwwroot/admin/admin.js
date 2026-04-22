@@ -150,8 +150,10 @@ const ActivityApi = {
     });
 
     if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      throw new Error(err.message || `下載失敗（HTTP ${response.status}）`);
+      const text = await response.text();
+      let msg = `下載失敗（HTTP ${response.status}）`;
+      try { msg = JSON.parse(text)?.message || msg; } catch { /* ignore */ }
+      throw new Error(msg);
     }
 
     const blob = await response.blob();
@@ -181,10 +183,21 @@ const ActivityApi = {
       body: formData
     });
 
-    const result = await response.json();
+    // 先確認有 body 再 parse JSON，避免空回應 crash
+    let result;
+    const contentType = response.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      result = await response.json();
+    } else {
+      const text = await response.text();
+      if (text) {
+        try { result = JSON.parse(text); } catch { result = null; }
+      }
+    }
 
     if (!response.ok) {
-      const error = new Error(result.message || '解析失敗');
+      const msg = result?.message || `請求失敗（HTTP ${response.status}）`;
+      const error = new Error(msg);
       error.status = response.status;
       throw error;
     }
