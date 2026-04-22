@@ -85,10 +85,12 @@
     </div>
 
     <div class="modal-tabs" id="modal-tabs">
-      <button class="modal-tab active" data-tab="basic">基本資料</button>
-      <button class="modal-tab" data-tab="voters">可投票名單</button>
-      <button class="modal-tab" data-tab="candidates">候選人管理</button>
-      <button class="modal-tab" data-tab="results">開票頁面</button>
+      <div class="modal-tab-pills">
+        <button class="modal-tab active" data-tab="basic">基本資料</button>
+        <button class="modal-tab" data-tab="voters">可投票名單</button>
+        <button class="modal-tab" data-tab="candidates">候選人管理</button>
+        <button class="modal-tab" data-tab="results">開票頁面</button>
+      </div>
     </div>
 
     <div class="modal-body">
@@ -106,12 +108,14 @@
             <td><textarea id="activity-desc" rows="3" placeholder="請輸入活動說明（可選）"></textarea></td>
           </tr>         
           <tr>
-            <th>開始時間</th>
-            <td><input type="datetime-local" id="activity-start" class="form-input"></td>
-          </tr>
-          <tr>
-            <th>結束時間</th>
-            <td><input type="datetime-local" id="activity-end" class="form-input"></td>
+            <th>活動起訖</th>
+            <td>
+              <div style="display:flex;gap:10px;align-items:center">
+                <input type="datetime-local" id="activity-start" class="form-input" style="flex:1">
+                <span style="color:var(--ink-3);white-space:nowrap;font-size:13px">至</span>
+                <input type="datetime-local" id="activity-end" class="form-input" style="flex:1">
+              </div>
+            </td>
           </tr>
           <tr>
             <th>狀態</th>
@@ -125,30 +129,21 @@
             <th>建立人</th>
             <td id="detail-created-by">-</td>
           </tr>
-        </table>
-
-        <div class="result-view-settings" style="margin-top:20px">
-          <div style="font-weight:500;margin-bottom:12px">結果查閱設定</div>
-          <table class="detail-table">
-            <tr>
-              <th>允許查閱</th>
-              <td>
-                <label style="display:flex;align-items:center;gap:8px">
+          <tr>
+            <th>允許查閱</th>
+            <td>
+              <div style="display:flex;gap:10px;align-items:center">
+                <label class="switch-toggle">
                   <input type="checkbox" id="is-result-viewable">
-                  <span>允許投票人查閱投票結果</span>
+                  <span class="switch-thumb"></span>
                 </label>
-              </td>
-            </tr>
-            <tr id="result-view-start-row" style="display:none">
-              <th>查閱開始時間</th>
-              <td><input type="datetime-local" id="result-view-start" class="form-input"></td>
-            </tr>
-            <tr id="result-view-end-row" style="display:none">
-              <th>查閱結束時間</th>
-              <td><input type="datetime-local" id="result-view-end" class="form-input"></td>
-            </tr>
-          </table>
-        </div>
+                <input type="datetime-local" id="result-view-start" class="form-input" style="flex:1;visibility:hidden">
+                <span id="result-view-sep" style="color:var(--ink-3);white-space:nowrap;font-size:13px;visibility:hidden">至</span>
+                <input type="datetime-local" id="result-view-end" class="form-input" style="flex:1;visibility:hidden">
+              </div>
+            </td>
+          </tr>
+        </table>
       </div>
 
       <!-- 投票人員 Tab -->
@@ -256,13 +251,14 @@
 
   function initResultViewToggle() {
     const checkbox = document.getElementById('is-result-viewable');
-    const startRow = document.getElementById('result-view-start-row');
-    const endRow = document.getElementById('result-view-end-row');
-    checkbox.onchange = () => {
-      const show = checkbox.checked ? 'table-row' : 'none';
-      startRow.style.display = show;
-      endRow.style.display = show;
-    };
+    checkbox.onchange = () => toggleResultViewInputs(checkbox.checked);
+  }
+
+  function toggleResultViewInputs(show) {
+    const v = show ? 'visible' : 'hidden';
+    document.getElementById('result-view-start').style.visibility = v;
+    document.getElementById('result-view-end').style.visibility   = v;
+    document.getElementById('result-view-sep').style.visibility   = v;
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -382,8 +378,7 @@
     document.getElementById('is-result-viewable').checked = false;
     document.getElementById('result-view-start').value = '';
     document.getElementById('result-view-end').value = '';
-    document.getElementById('result-view-start-row').style.display = 'none';
-    document.getElementById('result-view-end-row').style.display = 'none';
+    toggleResultViewInputs(false);
     document.getElementById('detail-created-at').textContent = '-';
     document.getElementById('detail-created-by').textContent = '-';
 
@@ -430,10 +425,7 @@
         // 結果查閱設定
         const isViewable = activity.isResultViewable || false;
         document.getElementById('is-result-viewable').checked = isViewable;
-        if (isViewable) {
-          document.getElementById('result-view-start-row').style.display = 'table-row';
-          document.getElementById('result-view-end-row').style.display = 'table-row';
-        }
+        toggleResultViewInputs(isViewable);
         
         if (activity.resultViewStartTime) {
           document.getElementById('result-view-start').value = formatDateTimeLocal(activity.resultViewStartTime);
