@@ -140,15 +140,42 @@ const ActivityApi = {
   },
 
   /**
-   * 匯入投票人員預覽
-   * @param {File} file 
-   * @returns {Promise<object>}
+   * 下載投票人員 CSV 範本（由後端提供，含工號/名稱/單位/生日）
+   * @returns {Promise<void>}
    */
-  async importVotersPreview(file) {
+  async downloadVoterTemplate() {
+    const response = await fetch(API_BASE_URL + '/admin/activities/voters/template', {
+      method: 'GET',
+      credentials: 'include'
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.message || `下載失敗（HTTP ${response.status}）`);
+    }
+
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'voters_template.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  },
+
+  /**
+   * 解析 CSV 投票名單（純解析，不存 DB）
+   * 回傳陣列供前端暫存，儲存活動時一起送出
+   * @param {File} file CSV 檔案
+   * @returns {Promise<Array<{employeeNo, name, department, birthDate}>>}
+   */
+  async importVoters(file) {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await fetch(API_BASE_URL + '/admin/voters/import-preview', {
+    const response = await fetch(API_BASE_URL + '/admin/activities/voters/parse', {
       method: 'POST',
       credentials: 'include',
       body: formData
@@ -157,12 +184,18 @@ const ActivityApi = {
     const result = await response.json();
 
     if (!response.ok) {
-      const error = new Error(result.message || '匯入失敗');
+      const error = new Error(result.message || '解析失敗');
       error.status = response.status;
       throw error;
     }
 
-    return result;
+    // 後端回傳 PascalCase，統一轉成 camelCase
+    return (Array.isArray(result) ? result : []).map(v => ({
+      employeeNo: v.EmployeeNo || v.employeeNo || '',
+      name:       v.Name       || v.name       || '',
+      department: v.Department || v.department || '',
+      birthDate:  v.BirthDate  || v.birthDate  || ''
+    }));
   }
 };
 

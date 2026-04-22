@@ -509,34 +509,28 @@
     if (!file) return;
 
     const resultEl = document.getElementById('voter-import-result');
-    resultEl.innerHTML = '<span style="color:var(--ink-3)">匯入中...</span>';
+    resultEl.innerHTML = '<span style="color:var(--ink-3)">解析中...</span>';
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
+      // 只做解析，回傳 JSON 暫存在前端 voterList，儲存活動時一起送出
+      const parsed = await ActivityApi.importVoters(file);
 
-      const result = await ActivityApi.importVotersPreview(file);
-
-      if (!response.ok) {
-        throw new Error(result.message || '匯入失敗');
-      }
-
-      // 合併匯入的資料
-      const newVoters = result.voters || [];
       const existingNos = new Set(voterList.map(v => v.employeeNo));
       let addedCount = 0;
 
-      newVoters.forEach(voter => {
-        if (!existingNos.has(voter.employeeNo)) {
-          voterList.push(voter);
+      parsed.forEach(v => {
+        if (v.employeeNo && !existingNos.has(v.employeeNo)) {
+          voterList.push(v);
+          existingNos.add(v.employeeNo);
           addedCount++;
         }
       });
 
-      resultEl.innerHTML = `
-        <span style="color:var(--success)">✓ 成功匯入 ${addedCount} 位投票人</span>
-        ${result.errors?.length ? `<br><span style="color:var(--warning)">⚠ ${result.errors.length} 筆資料有問題</span>` : ''}
-      `;
+      const skipped = parsed.length - addedCount;
+      resultEl.innerHTML =
+        `<span style="color:var(--success)">✓ 解析完成，新增 ${addedCount} 位投票人</span>` +
+        (skipped > 0 ? `<span style="color:var(--ink-3);margin-left:8px">（${skipped} 筆工號重複已略過）</span>` : '') +
+        `<span style="color:var(--ink-3);margin-left:8px">— 請儲存活動以套用變更</span>`;
 
       renderVoterTable();
 
@@ -544,8 +538,15 @@
       resultEl.innerHTML = `<span style="color:var(--danger)">✗ ${error.message}</span>`;
     }
 
-    // 清空 file input
     event.target.value = '';
+  }
+
+  async function downloadVoterTemplate() {
+    try {
+      await ActivityApi.downloadVoterTemplate();
+    } catch (error) {
+      alert('下載範本失敗：' + error.message);
+    }
   }
 
 

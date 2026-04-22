@@ -205,6 +205,148 @@ namespace EmployeeVoting.Api.Controllers
         }
 
         /// <summary>
+        /// 下載投票名單 CSV 範本
+        /// </summary>
+        [HttpGet("voters/template")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public IActionResult DownloadVotersTemplate()
+        {
+            // 加入 UTF-8 BOM 讓 Excel 正確開啟中文
+            var bom = new byte[] { 0xEF, 0xBB, 0xBF };
+            var csvContent = "工號,名稱,單位,生日\r\nA001,王小明,研發部,1990-01-01\r\nA002,陳小華,業務部,1992-05-20\r\n";
+            var csvBytes = System.Text.Encoding.UTF8.GetBytes(csvContent);
+            var bytes = bom.Concat(csvBytes).ToArray();
+            return File(bytes, "text/csv; charset=utf-8", "voters_template.csv");
+        }
+
+        /// <summary>
+        /// 解析 CSV 投票名單（純解析，不存 DB）
+        /// 支援欄位：工號, 名稱, 單位, 生日
+        /// 工號重複只保留第一筆，回傳 JSON 供前端暫存後連同活動一起儲存
+        /// </summary>
+        [HttpPost("voters/parse")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> ParseVotersCsv(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest(new ErrorResponse { Code = ErrorCodes.ValidationFailed, Message = "請上傳 CSV 檔案" });
+
+            if (file.Length > 5 * 1024 * 1024)
+                return BadRequest(new ErrorResponse { Code = ErrorCodes.ValidationFailed, Message = "檔案大小不可超過 5MB" });
+
+            var result = await ParseVotersCsvInternal(file);
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// 上傳 CSV 匯入投票名單（保留舊路由相容性，內部共用解析邏輯）
+        /// </summary>
+        [HttpPost("{id}/voters/import")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> ImportVotersCsv(Guid id, IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest(new ErrorResponse { Code = ErrorCodes.ValidationFailed, Message = "請上傳 CSV 檔案" });
+
+            if (file.Length > 5 * 1024 * 1024)
+                return BadRequest(new ErrorResponse { Code = ErrorCodes.ValidationFailed, Message = "檔案大小不可超過 5MB" });
+
+            var result = await ParseVotersCsvInternal(file);
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// 共用 CSV 解析邏輯
+        /// </summary>
+        private static async Task<List<object>> ParseVotersCsvInternal(IFormFile file)
+        {
+            var result = new List<object>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            using var stream = file.OpenReadStream();
+            using var reader = new System.IO.StreamReader(stream, System.Text.Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+
+            string? line;
+            int lineNo = 0;
+            while ((line = await reader.ReadLineAsync()) != null)
+            {
+                lineNo++;
+                if (string.IsNullOrWhiteSpace(line)) continue;
+
+                // 跳過標頭行（第一欄含中文或英文標頭關鍵字）
+                if (lineNo == 1)
+                {
+                    var firstField = ParseCsvLine(line).FirstOrDefault() ?? "";
+                    if (firstField.Contains("工號") || firstField.ToLower().Contains("employee") || firstField.ToLower() == "id")
+                        continue;
+                }
+
+                var fields = ParseCsvLine(line);
+                if (fields.Count < 1) continue;
+
+                var employeeNo = fields.Count > 0 ? fields[0].Trim() : "";
+                var name       = fields.Count > 1 ? fields[1].Trim() : "";
+                var unit       = fields.Count > 2 ? fields[2].Trim() : "";
+                var birthday   = fields.Count > 3 ? fields[3].Trim() : "";
+
+                if (string.IsNullOrEmpty(employeeNo)) continue;
+
+                // 工號重複只保留第一筆
+                if (!seen.Add(employeeNo)) continue;
+
+                result.Add(new
+                {
+                    EmployeeNo = employeeNo,
+                    Name       = name,
+                    Department = unit,
+                    BirthDate  = birthday
+                });
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// 解析單行 CSV（支援帶引號的欄位）
+        /// </summary>
+        private static List<string> ParseCsvLine(string line)
+        {
+            var fields = new List<string>();
+            var sb = new System.Text.StringBuilder();
+            bool inQuotes = false;
+
+            for (int i = 0; i < line.Length; i++)
+            {
+                char c = line[i];
+                if (c == '"')
+                {
+                    if (inQuotes && i + 1 < line.Length && line[i + 1] == '"')
+                    {
+                        sb.Append('"');
+                        i++;
+                    }
+                    else
+                    {
+                        inQuotes = !inQuotes;
+                    }
+                }
+                else if (c == ',' && !inQuotes)
+                {
+                    fields.Add(sb.ToString());
+                    sb.Clear();
+                }
+                else
+                {
+                    sb.Append(c);
+                }
+            }
+            fields.Add(sb.ToString());
+            return fields;
+        }
+
+        /// <summary>
         /// 上傳候選人圖片
         /// </summary>
         [HttpPost("candidates/upload-image")]

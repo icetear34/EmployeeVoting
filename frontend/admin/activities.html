@@ -171,11 +171,12 @@
                 <th>員工編號</th>
                 <th>姓名</th>
                 <th>部門</th>
+                <th>生日</th>
                 <th style="width:60px">操作</th>
               </tr>
             </thead>
             <tbody id="voter-table-body">
-              <tr><td colspan="4" style="text-align:center;color:var(--ink-3)">尚無投票人員</td></tr>
+              <tr><td colspan="5" style="text-align:center;color:var(--ink-3)">尚無投票人員</td></tr>
             </tbody>
           </table>
         </div>
@@ -499,7 +500,7 @@
 
     const tbody = document.getElementById('voter-table-body');
     if (voterList.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--ink-3)">尚無投票人員</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--ink-3)">尚無投票人員</td></tr>';
       return;
     }
 
@@ -508,6 +509,7 @@
         <td>${UIUtil.escapeHtml(voter.employeeNo)}</td>
         <td>${UIUtil.escapeHtml(voter.name || '-')}</td>
         <td>${UIUtil.escapeHtml(voter.department || '-')}</td>
+        <td>${UIUtil.escapeHtml(voter.birthDate || '-')}</td>
         <td><button class="btn btn-outline btn-sm btn-danger" onclick="removeVoter(${idx})">移除</button></td>
       </tr>
     `).join('');
@@ -522,6 +524,13 @@
     const file = event.target.files[0];
     if (!file) return;
 
+    const activityId = editingActivity?.id;
+    if (!activityId) {
+      alert('請先儲存活動後再匯入名單');
+      event.target.value = '';
+      return;
+    }
+
     const resultEl = document.getElementById('voter-import-result');
     resultEl.innerHTML = '<span style="color:var(--ink-3)">匯入中...</span>';
 
@@ -529,11 +538,9 @@
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch(API_BASE_URL + '/admin/voters/import-preview', {
+      const response = await fetch(API_BASE_URL + `/admin/activities/${activityId}/voters/import`, {
         method: 'POST',
-        headers: {
-          'Authorization': 'Bearer ' + CookieUtil.get('admin_session')
-        },
+        credentials: 'include',
         body: formData
       });
 
@@ -543,22 +550,29 @@
         throw new Error(result.message || '匯入失敗');
       }
 
-      // 合併匯入的資料
-      const newVoters = result.voters || [];
+      // result 為陣列：[{ employeeNo, name, department, birthDate }, ...]
+      const newVoters = Array.isArray(result) ? result : (result.voters || []);
       const existingNos = new Set(voterList.map(v => v.employeeNo));
       let addedCount = 0;
 
-      newVoters.forEach(voter => {
-        if (!existingNos.has(voter.employeeNo)) {
-          voterList.push(voter);
+      newVoters.forEach(v => {
+        const no = v.EmployeeNo || v.employeeNo;
+        if (no && !existingNos.has(no)) {
+          voterList.push({
+            employeeNo:  no,
+            name:        v.Name       || v.name       || '',
+            department:  v.Department || v.department || '',
+            birthDate:   v.BirthDate  || v.birthDate  || ''
+          });
+          existingNos.add(no);
           addedCount++;
         }
       });
 
-      resultEl.innerHTML = `
-        <span style="color:var(--success)">✓ 成功匯入 ${addedCount} 位投票人</span>
-        ${result.errors?.length ? `<br><span style="color:var(--warning)">⚠ ${result.errors.length} 筆資料有問題</span>` : ''}
-      `;
+      const skipped = newVoters.length - addedCount;
+      resultEl.innerHTML =
+        `<span style="color:var(--success)">✓ 成功新增 ${addedCount} 位投票人</span>` +
+        (skipped > 0 ? `<span style="color:var(--ink-3);margin-left:8px">（${skipped} 筆工號重複已略過）</span>` : '');
 
       renderVoterTable();
 
@@ -566,20 +580,33 @@
       resultEl.innerHTML = `<span style="color:var(--danger)">✗ ${error.message}</span>`;
     }
 
-    // 清空 file input
     event.target.value = '';
   }
 
-  function downloadVoterTemplate() {
-    // 建立範本 CSV
-    const csv = 'employeeNo,name,department\nEMP001,王小明,研發部\nEMP002,李小華,行銷部';
-    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'voter_template.csv';
-    a.click();
-    URL.revokeObjectURL(url);
+  async function downloadVoterTemplate() {
+    try {
+      const response = await fetch(API_BASE_URL + '/admin/activities/voters/template', {
+        method: 'GET',
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.message || `下載失敗（HTTP ${response.status}）`);
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'voters_template.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      alert('下載範本失敗：' + error.message);
+    }
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
