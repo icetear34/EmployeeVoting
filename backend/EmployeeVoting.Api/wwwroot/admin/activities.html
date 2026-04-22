@@ -307,15 +307,16 @@
 
     tbody.innerHTML = activities.map(act => {
       const status = UIUtil.getActivityStatus(act.startTime, act.endTime);
+      const actName = act.name || act.activityName || '';
       return `
         <tr>
-          <td>${UIUtil.escapeHtml(act.activityName || act.name)}</td>
+          <td>${UIUtil.escapeHtml(actName)}</td>
           <td>${UIUtil.formatDateTime(act.startTime)}</td>
           <td>${UIUtil.formatDateTime(act.endTime)}</td>
           <td><span class="badge ${status.className}">${status.text}</span></td>
           <td>
             <button class="btn btn-outline btn-sm" onclick="openActivityModal('${act.id}')">檢視</button>
-            <button class="btn btn-outline btn-sm btn-danger" onclick="openDeleteModal('${act.id}', '${UIUtil.escapeHtml(act.activityName || act.name)}')">刪除</button>
+            <button class="btn btn-outline btn-sm btn-danger" onclick="openDeleteModal('${act.id}', '${UIUtil.escapeHtml(actName)}')">刪除</button>
           </td>
         </tr>
       `;
@@ -382,7 +383,7 @@
         editingActivity = activity;
 
         // 更新標題和狀態徽章
-        const actName = activity.activityName || activity.name || '活動詳情';
+        const actName = activity.name || activity.activityName || '活動詳情';
         modalTitle.textContent = actName;
         
         const status = UIUtil.getActivityStatus(activity.startTime, activity.endTime);
@@ -395,7 +396,7 @@
 
         // 填入基本資料
         document.getElementById('activity-id').value = activity.id;
-        document.getElementById('activity-name').value = activity.activityName || activity.name || '';
+        document.getElementById('activity-name').value = activity.name || activity.activityName || '';
         document.getElementById('activity-desc').value = activity.description || '';
         document.getElementById('activity-start').value = formatDateTimeLocal(activity.startTime);
         document.getElementById('activity-end').value = formatDateTimeLocal(activity.endTime);
@@ -761,9 +762,9 @@
     const resultViewStartTime = document.getElementById('result-view-start').value;
     const resultViewEndTime = document.getElementById('result-view-end').value;
 
-    // 驗證
-    if (!code || !name || !startTime || !endTime) {
-      alert('請填寫所有必填欄位');
+    // 驗證必填
+    if (!name || !startTime || !endTime) {
+      alert('請填寫活動名稱、開始時間與結束時間');
       return;
     }
 
@@ -772,49 +773,84 @@
       return;
     }
 
-    // 驗證候選人
     const validCandidates = candidateList.filter(c => c.name && c.name.trim());
-    if (validCandidates.length < 2) {
-      alert('請至少新增 2 位候選人');
-      return;
-    }
 
     const btn = document.getElementById('save-activity-btn');
     UIUtil.setLoading(btn, true);
 
-      const payload = {
-          activityName: name.trim(),
-          description: description?.trim() || '',
-          startTime: new Date(startTime).toISOString(),
-          endTime: new Date(endTime).toISOString(),
-          isResultViewable,
-          resultViewStartTime:
-              isResultViewable && resultViewStartTime
-                  ? new Date(resultViewStartTime).toISOString()
-                  : null,
-          resultViewEndTime:
-              isResultViewable && resultViewEndTime
-                  ? new Date(resultViewEndTime).toISOString()
-                  : null,
+    // 新增用 CreateVoteActivityRequest（ActivityName + EligibleVoters + Candidates 一起送）
+    // 更新用 UpdateVoteActivityRequest（Name，不含名單）；名單/候選人另由獨立 API 處理
+    const baseFields = {
+      description: description || '',
+      startTime: new Date(startTime).toISOString(),
+      endTime: new Date(endTime).toISOString(),
+      isResultViewable,
+      resultViewStartTime:
+        isResultViewable && resultViewStartTime
+          ? new Date(resultViewStartTime).toISOString()
+          : null,
+      resultViewEndTime:
+        isResultViewable && resultViewEndTime
+          ? new Date(resultViewEndTime).toISOString()
+          : null,
+    };
 
-          eligibleVoters: voterList.map(v => ({
-              employeeNo: v.employeeNo?.trim() || '',
-              name: v.name?.trim() || '',
-              department: v.department?.trim() || '',
-              birthDate: v.birthDate?.trim() || ''
-          })),
-
-          candidates: validCandidates.map(c => ({
-              name: c.name.trim(),
-              description: c.description?.trim() || '',
-              imagePath: c.imageUrl || ''
-          }))
+    let payload;
+    if (id) {
+      // PUT：UpdateVoteActivityRequest — 欄位名稱為 name（不是 activityName）
+      payload = {
+        name: name,
+        ...baseFields
       };
+    } else {
+      // POST：CreateVoteActivityRequest — 欄位名稱為 activityName，含名單與候選人
+      payload = {
+        activityName: name,
+        ...baseFields,
+        eligibleVoters: voterList.map(v => ({
+          employeeNo: v.employeeNo?.trim() || '',
+          name:       v.name?.trim()       || '',
+          department: v.department?.trim() || '',
+          birthDate:  v.birthDate?.trim()  || ''
+        })),
+        candidates: validCandidates.map(c => ({
+          name:        c.name.trim(),
+          description: c.description?.trim() || '',
+          imagePath:   c.imageUrl || ''
+        }))
+      };
+    }
 
     try {
       if (id) {
-        await ApiUtil.put(`/admin/activities/${id}`, payload);
+        // 更新：基本資料、名單、候選人各自對應獨立 API，並行送出
+        await Promise.all([
+          // PUT UpdateVoteActivityRequest（name, description, times...）
+          ApiUtil.put(`/admin/activities/${id}`, payload),
+
+          // PUT UpdateEligibleVotersRequest { voters: [...] }
+          ApiUtil.put(`/admin/activities/${id}/voters`, {
+            voters: voterList.map(v => ({
+              employeeNo: v.employeeNo?.trim() || '',
+              name:       v.name?.trim()       || '',
+              department: v.department?.trim() || '',
+              birthDate:  v.birthDate?.trim()  || ''
+            }))
+          }),
+
+          // PUT UpdateCandidatesRequest { candidates: [...] }
+          ApiUtil.put(`/admin/activities/${id}/candidates`, {
+            candidates: validCandidates.map((c, idx) => ({
+              id:          c.id && !String(c.id).startsWith('new_') ? c.id : null,
+              name:        c.name.trim(),
+              description: c.description?.trim() || '',
+              imagePath:   c.imageUrl || '',
+              sortOrder:   idx
+            }))
+          })
+        ]);
       } else {
+        // 新增：一次送出所有資料（CreateVoteActivityRequest）
         await ApiUtil.post('/admin/activities', payload);
       }
 
