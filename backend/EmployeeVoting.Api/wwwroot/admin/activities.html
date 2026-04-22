@@ -427,12 +427,10 @@
         document.getElementById('is-result-viewable').checked = isViewable;
         toggleResultViewInputs(isViewable);
         
-        if (activity.resultViewStartTime) {
-          document.getElementById('result-view-start').value = formatDateTimeLocal(activity.resultViewStartTime);
-        }
-        if (activity.resultViewEndTime) {
-          document.getElementById('result-view-end').value = formatDateTimeLocal(activity.resultViewEndTime);
-        }
+        document.getElementById('result-view-start').value =
+          isViewable && activity.resultViewStartTime ? formatDateTimeLocal(activity.resultViewStartTime) : '';
+        document.getElementById('result-view-end').value =
+          isViewable && activity.resultViewEndTime ? formatDateTimeLocal(activity.resultViewEndTime) : '';
 
         // 載入投票人員和候選人
         voterList = activity.eligibleVoters || [];
