@@ -98,5 +98,17 @@ namespace EmployeeVoting.Api.Infrastructure.Persistence.Repositories
 
             transaction.Commit();
         }
+
+        public async Task<IEnumerable<EligibleVoter>> GetByEmployeeNoAsync(string employeeNo)
+        {
+            using var connection = _connectionFactory.CreateConnection();
+
+            const string sql = @"
+                SELECT Id, VoteActivityId, EmployeeNo, Name, Department, BirthDate, CreatedAt
+                FROM EligibleVoter
+                WHERE EmployeeNo = @EmployeeNo";
+
+            return await connection.QueryAsync<EligibleVoter>(sql, new { EmployeeNo = employeeNo });
+        }
     }
 }

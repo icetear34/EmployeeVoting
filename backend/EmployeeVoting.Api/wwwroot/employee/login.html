@@ -12,45 +12,41 @@
 
 <div id="screen-login" class="screen active">
   <nav class="topbar">
-    <span class="topbar-logo">VoteSystem v0.4</span>
+    <span class="topbar-logo">VoteSystem</span>
     <span class="topbar-title">員工投票</span>
     <a href="../admin/login.html" class="topbar-action">後台管理</a>
   </nav>
 
   <div class="center-wrap">
-    <div class="card">
-      <div class="card-title">員工登入</div>
-      <div class="card-subtitle">請輸入工號、生日與驗證碼</div>
+    <div class="card" style="max-width:400px;width:100%">
+      <div class="card-body">
+        <h2 style="text-align:center;margin-bottom:6px;font-weight:500">員工登入</h2>
+        <p style="text-align:center;font-size:13px;color:var(--ink-3);margin-bottom:24px">請輸入工號、生日與驗證碼</p>
 
-      <div class="demo-hint">
-        <strong>帳號 A（有 2 個活動可投）：</strong>工號 <code>1233C00</code>，生日 <code>19900115</code><br>
-        <strong>帳號 B（所有活動已投完）：</strong>工號 <code>1233C99</code>，生日 <code>19850101</code><br>
-        驗證碼：點擊右側圖示取得
-      </div>
+        <div id="login-error" class="error-banner"></div>
 
-      <div id="login-error" class="error-banner"></div>
-
-      <form id="login-form" onsubmit="return handleLogin(event)">
-        <div class="form-group">
-          <label for="emp-no">工號</label>
-          <input type="text" id="emp-no" placeholder="例：1233C00" maxlength="20" required>
-        </div>
-
-        <div class="form-group">
-          <label for="emp-birth">生日（yyyyMMdd）</label>
-          <input type="text" id="emp-birth" placeholder="例：19900115" maxlength="8" required>
-        </div>
-
-        <div class="form-group">
-          <label for="emp-captcha">驗證碼</label>
-          <div class="captcha-row">
-            <input type="text" id="emp-captcha" placeholder="輸入右側驗證碼" maxlength="4" required>
-            <div class="captcha-box" id="captcha-display" onclick="refreshCaptcha()"></div>
+        <form id="login-form" onsubmit="return handleLogin(event)">
+          <div class="form-group">
+            <label for="emp-no">工號</label>
+            <input type="text" id="emp-no" class="form-input" placeholder="例：1233C00" maxlength="20" required autocomplete="username">
           </div>
-        </div>
 
-        <button type="submit" class="btn" id="login-btn">登入</button>
-      </form>
+          <div class="form-group">
+            <label for="emp-birth">生日</label>
+            <input type="text" id="emp-birth" class="form-input" placeholder="例：19900115（yyyyMMdd）" maxlength="8" required autocomplete="bday">
+          </div>
+
+          <div class="form-group">
+            <label for="emp-captcha">驗證碼</label>
+            <div class="captcha-row">
+              <input type="text" id="emp-captcha" class="form-input" placeholder="請輸入驗證碼" maxlength="4" required autocomplete="off">
+              <div class="captcha-box" id="captcha-display" onclick="refreshCaptcha()" title="點擊更換"></div>
+            </div>
+          </div>
+
+          <button type="submit" class="btn" id="login-btn">登入</button>
+        </form>
+      </div>
     </div>
   </div>
 </div>
@@ -58,66 +54,58 @@
 <script src="../shared/utils.js"></script>
 <script src="employee.js"></script>
 <script>
-  // 頁面載入時檢查是否已登入
   document.addEventListener('DOMContentLoaded', () => {
     checkExistingSession();
     refreshCaptcha();
   });
 
-  // 檢查現有 session
   async function checkExistingSession() {
     const session = CookieUtil.get('employee_session');
     if (session) {
       try {
         await ApiUtil.get('/employee-auth/me');
-        // 已登入，跳轉到投票頁面
         window.location.href = 'vote.html';
       } catch (error) {
-        // Session 無效，清除
         CookieUtil.remove('employee_session');
       }
     }
   }
 
-  // 刷新驗證碼
   async function refreshCaptcha() {
     const display = document.getElementById('captcha-display');
     try {
       const result = await CaptchaUtil.fetch('/employee-auth/captcha');
       display.innerHTML = `<img src="${result.imageDataUrl}" alt="驗證碼">`;
     } catch (error) {
-      // 使用本地驗證碼
       const result = CaptchaUtil.generateLocal();
       display.innerHTML = `<img src="${result.imageDataUrl}" alt="驗證碼">`;
     }
   }
 
-  // 處理登入
   async function handleLogin(event) {
     event.preventDefault();
-    
-    const employeeNo = document.getElementById('emp-no').value.trim();
-    const birthDate = document.getElementById('emp-birth').value.trim();
-    const captchaCode = document.getElementById('emp-captcha').value.trim();
-    const btn = document.getElementById('login-btn');
 
+    const errorEl = document.getElementById('login-error');
     UIUtil.hideError('login-error');
 
-    // 基本驗證
+    const employeeNo  = document.getElementById('emp-no').value.trim();
+    const birthDate   = document.getElementById('emp-birth').value.trim();
+    const captchaCode = document.getElementById('emp-captcha').value.trim();
+    const btn         = document.getElementById('login-btn');
+
     if (!employeeNo || !birthDate || !captchaCode) {
-      UIUtil.showError('login-error', '請填寫所有欄位。');
+      UIUtil.showError('login-error', '請填寫所有欄位');
       return false;
     }
 
     if (!/^\d{8}$/.test(birthDate)) {
-      UIUtil.showError('login-error', '生日格式錯誤，請輸入 8 碼數字（yyyyMMdd）。');
+      UIUtil.showError('login-error', '生日格式錯誤，請輸入 8 碼數字（yyyyMMdd）');
       return false;
     }
 
-    // 驗證碼檢查（本地模式）
     if (CaptchaUtil.currentKey?.startsWith('local-')) {
       if (!CaptchaUtil.verifyLocal(captchaCode)) {
-        UIUtil.showError('login-error', '驗證碼錯誤，請重試。');
+        UIUtil.showError('login-error', '驗證碼錯誤，請重試');
         refreshCaptcha();
         document.getElementById('emp-captcha').value = '';
         return false;
@@ -130,23 +118,18 @@
       const response = await ApiUtil.post('/employee-auth/login', {
         employeeNo,
         birthDate,
-        captchaId: CaptchaUtil.getKey(),
+        captchaId:   CaptchaUtil.getKey(),
         captchaCode: captchaCode.toUpperCase()
       });
 
-      // 儲存 session
       if (response.sessionToken) {
         CookieUtil.set('employee_session', response.sessionToken);
       }
-
-      // 儲存登入資料供投票頁面使用
-      sessionStorage.setItem('employee_data', JSON.stringify(response));
-
-      // 跳轉到投票頁面
+      // employee_logged_in 由後端 Set-Cookie 設定，直接跳轉
       window.location.href = 'vote.html';
 
     } catch (error) {
-      UIUtil.showError('login-error', error.message || '登入失敗，請重試。');
+      UIUtil.showError('login-error', error.message || '登入失敗，請重試');
       refreshCaptcha();
       document.getElementById('emp-captcha').value = '';
     } finally {

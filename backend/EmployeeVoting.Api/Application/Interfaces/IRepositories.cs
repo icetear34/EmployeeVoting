@@ -86,5 +86,22 @@ namespace EmployeeVoting.Api.Application.Interfaces
         Task BatchCreateAsync(IEnumerable<EligibleVoter> voters);
         Task DeleteByActivityIdAsync(Guid activityId);
         Task ReplaceAllAsync(Guid activityId, IEnumerable<EligibleVoter> voters);
+
+        /// <summary>
+        /// 查詢工號在任一活動中的名單（用於員工登入驗證）
+        /// </summary>
+        Task<IEnumerable<EligibleVoter>> GetByEmployeeNoAsync(string employeeNo);
+    }
+
+    /// <summary>
+    /// 投票紀錄 Repository 介面
+    /// </summary>
+    public interface IVoteRecordRepository
+    {
+        Task<bool> HasVotedAsync(Guid activityId, string employeeNo);
+        Task<IEnumerable<VoteRecord>> GetByActivityIdAsync(Guid activityId);
+        Task<int> GetCountByCandidateIdAsync(Guid candidateId);
+        Task CreateAsync(VoteRecord record);
+        Task BatchCreateAsync(IEnumerable<VoteRecord> records);
     }
 }

@@ -32,10 +32,13 @@ builder.Services.AddScoped<ICaptchaSessionRepository, CaptchaSessionRepository>(
 builder.Services.AddScoped<IVoteActivityRepository, VoteActivityRepository>();
 builder.Services.AddScoped<ICandidateRepository, CandidateRepository>();
 builder.Services.AddScoped<IEligibleVoterRepository, EligibleVoterRepository>();
+builder.Services.AddScoped<IVoteRecordRepository, VoteRecordRepository>();
 
 // 註冊 Application Services
 builder.Services.AddScoped<ICaptchaService, CaptchaService>();
 builder.Services.AddScoped<IAdminAuthService, AdminAuthService>();
+builder.Services.AddScoped<IEmployeeVoteService, EmployeeVoteService>();
+builder.Services.AddScoped<IEmployeeAuthService, EmployeeAuthService>();
 
 // 註冊 Action Filter
 builder.Services.AddScoped<EmployeeVoting.Api.Controllers.AdminAuthFilter>();
