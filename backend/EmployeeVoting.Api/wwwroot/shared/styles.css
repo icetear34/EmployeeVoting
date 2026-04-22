@@ -273,10 +273,12 @@ textarea {
 
 .btn-danger {
   background: var(--danger);
+  color: #fff;
 }
 
 .btn-danger:hover {
   background: #a93226;
+  color: #fff;
 }
 
 /* ─── Banners & Messages ─── */

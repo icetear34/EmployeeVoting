@@ -867,16 +867,21 @@
             }))
           })
         ]);
+
+        // 編輯成功：不關閉視窗，重新載入最新資料並提示
+        await loadActivities();
+        await openActivityModal(id);
+        alert('更新成功');
       } else {
         // 新增：一次送出所有資料（CreateVoteActivityRequest）
         await ApiUtil.post('/admin/activities', payload);
+        alert('新增成功');
+        closeActivityModal();
+        await loadActivities();
       }
 
-      closeActivityModal();
-      await loadActivities();
-
     } catch (error) {
-      alert('儲存失敗: ' + (error.message || '未知錯誤'));
+      alert('儲存失敗：' + (error.message || '未知錯誤'));
     } finally {
       UIUtil.setLoading(btn, false);
     }
