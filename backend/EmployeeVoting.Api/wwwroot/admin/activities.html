@@ -329,8 +329,7 @@
   }
 
   function renderPagination() {
-    const container = document.getElementById('pagination-container');
-    container.innerHTML = PaginationUtil.render(currentPage, totalPages, 'goToPage');
+    PaginationUtil.render('pagination-container', currentPage, totalPages, 'goToPage');
   }
 
   function goToPage(page) {
