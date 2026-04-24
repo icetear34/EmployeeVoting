@@ -39,6 +39,11 @@ namespace EmployeeVoting.Api.Dtos.Admin
         /// 建立時間
         /// </summary>
         public DateTime CreatedAt { get; set; }
+
+        /// <summary>
+        /// 得票數
+        /// </summary>
+        public int VoteCount { get; set; }
     }
 
     /// <summary>

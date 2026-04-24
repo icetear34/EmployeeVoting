@@ -14,15 +14,18 @@ namespace EmployeeVoting.Api.Application.Services
         private readonly IVoteActivityRepository _voteActivityRepository;
         private readonly ICandidateRepository _candidateRepository;
         private readonly IEligibleVoterRepository _eligibleVoterRepository;
+        private readonly IVoteRecordRepository _voteRecordRepository;
 
         public VoteActivityService(
             IVoteActivityRepository voteActivityRepository,
             ICandidateRepository candidateRepository,
-            IEligibleVoterRepository eligibleVoterRepository)
+            IEligibleVoterRepository eligibleVoterRepository,
+            IVoteRecordRepository voteRecordRepository)
         {
             _voteActivityRepository = voteActivityRepository;
             _candidateRepository = candidateRepository;
             _eligibleVoterRepository = eligibleVoterRepository;
+            _voteRecordRepository = voteRecordRepository;
         }
 
         /// <inheritdoc/>
@@ -80,18 +83,25 @@ namespace EmployeeVoting.Api.Application.Services
 
             var response = MapToDetailResponse(activity);
 
-            // 載入候選人
+            // 載入候選人（含得票數）
             var candidates = await _candidateRepository.GetByActivityIdAsync(id);
-            response.Candidates = candidates.Select(c => new CandidateListItem
+            var candidateItems = new List<CandidateListItem>();
+            foreach (var c in candidates)
             {
-                Id = c.Id,
-                Name = c.Name,
-                Description = c.Description,
-                ImageUrl = c.ImagePath,
-                SortOrder = c.SortOrder,
-                IsEnabled = c.IsEnabled,
-                CreatedAt = c.CreatedAt
-            }).ToList();
+                var voteCount = await _voteRecordRepository.GetCountByCandidateIdAsync(c.Id);
+                candidateItems.Add(new CandidateListItem
+                {
+                    Id = c.Id,
+                    Name = c.Name,
+                    Description = c.Description,
+                    ImageUrl = c.ImagePath,
+                    SortOrder = c.SortOrder,
+                    IsEnabled = c.IsEnabled,
+                    CreatedAt = c.CreatedAt,
+                    VoteCount = voteCount
+                });
+            }
+            response.Candidates = candidateItems;
 
             // 載入投票名單
             var voters = await _eligibleVoterRepository.GetByActivityIdAsync(id);

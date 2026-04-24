@@ -698,7 +698,7 @@
       return;
     }
 
-    const totalVotes = activity.candidates.reduce((sum, c) => sum + (c.votes || 0), 0);
+    const totalVotes = activity.candidates.reduce((sum, c) => sum + (c.voteCount || 0), 0);
     const totalVoters = activity.eligibleVoters?.length || 0;
     const turnout = totalVoters > 0 ? Math.round(totalVotes / totalVoters * 100) : 0;
 
@@ -720,20 +720,25 @@
       </div>
     `;
 
-    // 圓餅圖佔位
-    html += '<div class="chart-wrap"><canvas id="result-chart"></canvas></div>';
+    // 圓餅圖 + 右側圖例（並排）
+    html += `
+      <div style="display:flex;align-items:center;gap:32px;flex-wrap:wrap;margin-top:16px">
+        <div class="chart-wrap" style="flex:0 0 auto"><canvas id="result-chart"></canvas></div>
+        <div id="chart-legend" style="flex:1;min-width:160px;display:flex;flex-direction:column;gap:8px"></div>
+      </div>
+    `;
 
     // 詳細列表
     html += '<div style="margin-top:20px"><strong>得票明細</strong></div>';
     html += '<table class="table table-sm" style="margin-top:12px"><thead><tr><th>候選人</th><th>得票數</th><th>佔比</th></tr></thead><tbody>';
     
-    const sortedCandidates = [...activity.candidates].sort((a, b) => (b.votes || 0) - (a.votes || 0));
+    const sortedCandidates = [...activity.candidates].sort((a, b) => (b.voteCount || 0) - (a.voteCount || 0));
     sortedCandidates.forEach(cand => {
-      const pct = totalVotes > 0 ? Math.round((cand.votes || 0) / totalVotes * 100) : 0;
+      const pct = totalVotes > 0 ? Math.round((cand.voteCount || 0) / totalVotes * 100) : 0;
       html += `
         <tr>
           <td>${UIUtil.escapeHtml(cand.name)}</td>
-          <td>${cand.votes || 0}</td>
+          <td>${cand.voteCount || 0}</td>
           <td>${pct}%</td>
         </tr>
       `;
@@ -751,49 +756,112 @@
     if (!canvas || !canvas.getContext) return;
 
     const ctx = canvas.getContext('2d');
-    const size = Math.min(canvas.parentElement.clientWidth, 280);
+    const size = Math.min(canvas.parentElement.clientWidth, 260);
     canvas.width = size;
     canvas.height = size;
 
     const centerX = size / 2;
     const centerY = size / 2;
-    const radius = size / 2 - 20;
+    const outerRadius = size / 2 - 10;
+    const innerRadius = outerRadius * 0.48; // 甜甜圈內徑
+
+    const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
 
     if (totalVotes === 0) {
       ctx.fillStyle = '#e5e7eb';
       ctx.beginPath();
-      ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+      ctx.arc(centerX, centerY, outerRadius, 0, 2 * Math.PI);
       ctx.fill();
-
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, innerRadius, 0, 2 * Math.PI);
+      ctx.fill();
       ctx.fillStyle = '#9ca3af';
-      ctx.font = '14px sans-serif';
+      ctx.font = `${size * 0.055}px sans-serif`;
       ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
       ctx.fillText('尚無投票', centerX, centerY);
+      renderChartLegend(candidates, colors, totalVotes);
       return;
     }
 
-    const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
     let startAngle = -Math.PI / 2;
 
+    // 繪製各扇形
     candidates.forEach((cand, idx) => {
-      const pct = (cand.votes || 0) / totalVotes;
+      const pct = (cand.voteCount || 0) / totalVotes;
       const endAngle = startAngle + pct * 2 * Math.PI;
+      const color = colors[idx % colors.length];
 
-      ctx.fillStyle = colors[idx % colors.length];
+      // 扇形
+      ctx.fillStyle = color;
       ctx.beginPath();
       ctx.moveTo(centerX, centerY);
-      ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+      ctx.arc(centerX, centerY, outerRadius, startAngle, endAngle);
       ctx.closePath();
       ctx.fill();
+
+      // 白色分隔線
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY);
+      ctx.arc(centerX, centerY, outerRadius, startAngle, endAngle);
+      ctx.closePath();
+      ctx.stroke();
+
+      // 扇形中央標示佔比（佔比 > 5% 才顯示，避免太小擠在一起）
+      if (pct >= 0.05) {
+        const midAngle = startAngle + (endAngle - startAngle) / 2;
+        const labelR = (outerRadius + innerRadius) / 2;
+        const lx = centerX + labelR * Math.cos(midAngle);
+        const ly = centerY + labelR * Math.sin(midAngle);
+
+        ctx.fillStyle = '#fff';
+        ctx.font = `bold ${Math.max(11, size * 0.05)}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`${Math.round(pct * 100)}%`, lx, ly);
+      }
 
       startAngle = endAngle;
     });
 
-    // 中心白圓（甜甜圈效果）
+    // 中心白圓（甜甜圈效果）＋ 總票數
     ctx.fillStyle = '#fff';
     ctx.beginPath();
-    ctx.arc(centerX, centerY, radius * 0.5, 0, 2 * Math.PI);
+    ctx.arc(centerX, centerY, innerRadius, 0, 2 * Math.PI);
     ctx.fill();
+
+    ctx.fillStyle = '#374151';
+    ctx.font = `bold ${Math.max(14, size * 0.07)}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(totalVotes, centerX, centerY - size * 0.04);
+
+    ctx.fillStyle = '#9ca3af';
+    ctx.font = `${Math.max(10, size * 0.045)}px sans-serif`;
+    ctx.fillText('總票數', centerX, centerY + size * 0.05);
+
+    renderChartLegend(candidates, colors, totalVotes);
+  }
+
+  function renderChartLegend(candidates, colors, totalVotes) {
+    const legend = document.getElementById('chart-legend');
+    if (!legend) return;
+
+    legend.innerHTML = candidates.map((cand, idx) => {
+      const pct = totalVotes > 0 ? Math.round((cand.voteCount || 0) / totalVotes * 100) : 0;
+      const color = colors[idx % colors.length];
+      return `
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="flex:0 0 14px;height:14px;border-radius:3px;background:${color};display:inline-block"></span>
+          <span style="flex:1;font-size:13px;color:var(--ink-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${UIUtil.escapeHtml(cand.name)}">${UIUtil.escapeHtml(cand.name)}</span>
+          <span style="font-size:13px;font-weight:600;color:var(--ink-1);white-space:nowrap">${cand.voteCount || 0} 票</span>
+          <span style="font-size:12px;color:var(--ink-3);white-space:nowrap;min-width:38px;text-align:right">${pct}%</span>
+        </div>
+      `;
+    }).join('');
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
