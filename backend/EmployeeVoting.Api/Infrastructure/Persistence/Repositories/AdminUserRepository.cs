@@ -26,6 +26,7 @@ namespace EmployeeVoting.Api.Infrastructure.Persistence.Repositories
             Account,
             Password,
             DisplayName,
+            Role,
             IsEnabled,
             CreatedAt,
             UpdatedAt
@@ -41,7 +42,7 @@ namespace EmployeeVoting.Api.Infrastructure.Persistence.Repositories
         {
             using var connection = _connectionFactory.CreateConnection();
             return await connection.QueryFirstOrDefaultAsync<AdminUser>(
-                @"SELECT Id, Account, Password, DisplayName, IsEnabled, CreatedAt, UpdatedAt 
+                @"SELECT Id, Account, Password, DisplayName, Role, IsEnabled, CreatedAt, UpdatedAt 
                   FROM AdminUser 
                   WHERE Id = @Id",
                 new { Id = id.ToString("D") });
@@ -51,7 +52,7 @@ namespace EmployeeVoting.Api.Infrastructure.Persistence.Repositories
         {
             using var connection = _connectionFactory.CreateConnection();
             return await connection.QueryAsync<AdminUser>(
-                @"SELECT Id, Account, Password, DisplayName, IsEnabled, CreatedAt, UpdatedAt 
+                @"SELECT Id, Account, Password, DisplayName, Role, IsEnabled, CreatedAt, UpdatedAt 
                   FROM AdminUser 
                   ORDER BY CreatedAt DESC");
         }
@@ -64,8 +65,8 @@ namespace EmployeeVoting.Api.Infrastructure.Persistence.Repositories
             adminUser.UpdatedAt = DateTime.Now;
 
             await connection.ExecuteAsync(
-                @"INSERT INTO AdminUser (Id, Account, Password, DisplayName, IsEnabled, CreatedAt, UpdatedAt)
-                  VALUES (@Id, @Account, @Password, @DisplayName, @IsEnabled, @CreatedAt, @UpdatedAt)",
+                @"INSERT INTO AdminUser (Id, Account, Password, DisplayName, Role, IsEnabled, CreatedAt, UpdatedAt)
+                  VALUES (@Id, @Account, @Password, @DisplayName, @Role, @IsEnabled, @CreatedAt, @UpdatedAt)",
                 adminUser);
 
             return adminUser.Id;
@@ -81,6 +82,7 @@ namespace EmployeeVoting.Api.Infrastructure.Persistence.Repositories
                   SET Account = @Account, 
                       Password = @Password, 
                       DisplayName = @DisplayName, 
+                      Role = @Role,
                       IsEnabled = @IsEnabled, 
                       UpdatedAt = @UpdatedAt
                   WHERE Id = @Id",
@@ -100,6 +102,14 @@ namespace EmployeeVoting.Api.Infrastructure.Persistence.Repositories
             }
 
             return await connection.ExecuteScalarAsync<int>(sql, new { Account = account }) > 0;
+        }
+
+        public async Task DeleteAsync(Guid id)
+        {
+            using var connection = _connectionFactory.CreateConnection();
+            await connection.ExecuteAsync(
+                "DELETE FROM AdminUser WHERE Id = @Id",
+                new { Id = id.ToString("D") });
         }
     }
 }

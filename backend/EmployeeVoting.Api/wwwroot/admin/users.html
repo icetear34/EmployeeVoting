@@ -7,6 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../shared/styles.css">
   <link rel="stylesheet" href="admin.css">
+  <link rel="stylesheet" href="activities.css">
 </head>
 <body>
 
@@ -14,8 +15,8 @@
   <nav class="topbar">
     <span class="topbar-logo">VoteSystem</span>
     <div class="nav-switch">
-      <a href="activities.html" class="nav-switch-btn">活動管理</a>
-      <a href="users.html" class="nav-switch-btn active">帳號管理</a>
+      <a href="activities.html" class="nav-switch-item">活動管理</a>
+      <a href="users.html" class="nav-switch-item active">帳號管理</a>
     </div>
     <button class="topbar-action" onclick="doLogout()">登出</button>
   </nav>
@@ -24,9 +25,9 @@
     <!-- 操作區 -->
     <div class="card" style="margin-bottom:20px">
       <div class="card-body" style="padding:16px">
-        <div class="user-search-row" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+        <div class="activity-search-row" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
           <div class="form-group" style="margin:0;flex:1;min-width:200px">
-            <label>搜尋帳號</label>
+            <label>帳號 / 姓名</label>
             <input type="text" id="search-keyword" class="form-input" placeholder="搜尋帳號或姓名" onkeyup="handleSearchKeyup(event)">
           </div>
           <button class="btn btn-outline btn-sm btn-icon" onclick="searchUsers()" title="搜尋" style="width:44px;padding:0">
@@ -230,9 +231,11 @@
           <td>${UIUtil.formatDateTime(user.createdAt)}</td>
           <td>${statusBadge}</td>
           <td>
-            <button class="btn btn-outline btn-sm" onclick="openUserModal('${user.id}')">編輯</button>
-            <button class="btn btn-outline btn-sm" onclick="openResetPasswordModal('${user.id}', '${UIUtil.escapeHtml(user.username)}')">重設密碼</button>
-            <button class="btn btn-outline btn-sm btn-danger" onclick="openDeleteModal('${user.id}', '${UIUtil.escapeHtml(user.username)}')">刪除</button>
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:nowrap">
+              <button class="btn btn-outline btn-sm" onclick="openUserModal('${user.id}')">編輯</button>
+              <button class="btn btn-outline btn-sm" onclick="openResetPasswordModal('${user.id}', '${UIUtil.escapeHtml(user.username)}')">重設密碼</button>
+              <button class="btn btn-outline btn-sm btn-danger" onclick="openDeleteModal('${user.id}', '${UIUtil.escapeHtml(user.username)}')">刪除</button>
+            </div>
           </td>
         </tr>
       `;
@@ -240,8 +243,7 @@
   }
 
   function renderPagination() {
-    const container = document.getElementById('pagination-container');
-    container.innerHTML = PaginationUtil.render(currentPage, totalPages, 'goToPage');
+    PaginationUtil.render('pagination-container', currentPage, totalPages, 'goToPage');
   }
 
   function goToPage(page) {
@@ -450,6 +452,12 @@
     }
   }
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 登出
+  // ═══════════════════════════════════════════════════════════════════════════
+  async function doLogout() {
+    return AdminPage.logout();
+  }
 </script>
 
 </body>

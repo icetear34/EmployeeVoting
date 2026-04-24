@@ -102,6 +102,13 @@ namespace EmployeeVoting.Api.Infrastructure.Persistence
                 CREATE INDEX IF NOT EXISTS IX_AdminUser_Account ON AdminUser(Account);
             ");
 
+            // 補 Role 欄位（舊資料庫相容）
+            try
+            {
+                connection.Execute("ALTER TABLE AdminUser ADD COLUMN Role TEXT NOT NULL DEFAULT 'admin'");
+            }
+            catch { /* 欄位已存在，忽略 */ }
+
             // 建立 Session Token 資料表
             connection.Execute(@"
                 CREATE TABLE IF NOT EXISTS SessionToken (

@@ -37,6 +37,7 @@ builder.Services.AddScoped<IVoteRecordRepository, VoteRecordRepository>();
 // 註冊 Application Services
 builder.Services.AddScoped<ICaptchaService, CaptchaService>();
 builder.Services.AddScoped<IAdminAuthService, AdminAuthService>();
+builder.Services.AddScoped<IAdminUserService, AdminUserService>();
 builder.Services.AddScoped<IEmployeeVoteService, EmployeeVoteService>();
 builder.Services.AddScoped<IEmployeeAuthService, EmployeeAuthService>();
 

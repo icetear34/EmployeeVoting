@@ -32,6 +32,7 @@ namespace EmployeeVoting.Api.Application.Interfaces
         Task<IEnumerable<AdminUser>> GetAllAsync();
         Task<Guid> CreateAsync(AdminUser adminUser);
         Task UpdateAsync(AdminUser adminUser);
+        Task DeleteAsync(Guid id);
         Task<bool> AccountExistsAsync(string account, Guid? excludeId = null);
     }
 

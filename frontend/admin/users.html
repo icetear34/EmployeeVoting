@@ -7,6 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../shared/styles.css">
   <link rel="stylesheet" href="admin.css">
+  <link rel="stylesheet" href="activities.css">
 </head>
 <body>
 
@@ -24,13 +25,15 @@
     <!-- 操作區 -->
     <div class="card" style="margin-bottom:20px">
       <div class="card-body" style="padding:16px">
-        <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+        <div class="activity-search-row" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
           <div class="form-group" style="margin:0;flex:1;min-width:200px">
-            <label>搜尋帳號</label>
+            <label>帳號 / 姓名</label>
             <input type="text" id="search-keyword" class="form-input" placeholder="搜尋帳號或姓名" onkeyup="handleSearchKeyup(event)">
           </div>
-          <button class="btn btn-outline" onclick="searchUsers()">搜尋</button>
-          <button class="btn" onclick="openUserModal()">+ 新增帳號</button>
+          <button class="btn btn-outline btn-sm btn-icon" onclick="searchUsers()" title="搜尋" style="width:44px;padding:0">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </button>
+          <button class="btn btn-sm" onclick="openUserModal()" style="white-space:nowrap;padding-left:20px;padding-right:20px">+ 新增帳號</button>
         </div>
       </div>
     </div>
@@ -171,26 +174,10 @@
   // 頁面初始化
   // ═══════════════════════════════════════════════════════════════════════════
   document.addEventListener('DOMContentLoaded', async () => {
-    await checkAdminSession();
+    const ok = await AdminPage.requireAuth();
+    if (!ok) return;
     await loadUsers();
   });
-
-  async function checkAdminSession() {
-    const session = CookieUtil.get('admin_session');
-    if (!session) {
-      window.location.href = 'login.html';
-      return;
-    }
-
-    try {
-      await ApiUtil.get('/admin-auth/me');
-    } catch (error) {
-      if (error.status === 401) {
-        CookieUtil.remove('admin_session');
-        window.location.href = 'login.html';
-      }
-    }
-  }
 
   // ═══════════════════════════════════════════════════════════════════════════
   // 帳號列表
@@ -244,9 +231,11 @@
           <td>${UIUtil.formatDateTime(user.createdAt)}</td>
           <td>${statusBadge}</td>
           <td>
-            <button class="btn btn-outline btn-sm" onclick="openUserModal('${user.id}')">編輯</button>
-            <button class="btn btn-outline btn-sm" onclick="openResetPasswordModal('${user.id}', '${UIUtil.escapeHtml(user.username)}')">重設密碼</button>
-            <button class="btn btn-outline btn-sm btn-danger" onclick="openDeleteModal('${user.id}', '${UIUtil.escapeHtml(user.username)}')">刪除</button>
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:nowrap">
+              <button class="btn btn-outline btn-sm" onclick="openUserModal('${user.id}')">編輯</button>
+              <button class="btn btn-outline btn-sm" onclick="openResetPasswordModal('${user.id}', '${UIUtil.escapeHtml(user.username)}')">重設密碼</button>
+              <button class="btn btn-outline btn-sm btn-danger" onclick="openDeleteModal('${user.id}', '${UIUtil.escapeHtml(user.username)}')">刪除</button>
+            </div>
           </td>
         </tr>
       `;
@@ -254,8 +243,7 @@
   }
 
   function renderPagination() {
-    const container = document.getElementById('pagination-container');
-    container.innerHTML = PaginationUtil.render(currentPage, totalPages, 'goToPage');
+    PaginationUtil.render('pagination-container', currentPage, totalPages, 'goToPage');
   }
 
   function goToPage(page) {
@@ -468,14 +456,7 @@
   // 登出
   // ═══════════════════════════════════════════════════════════════════════════
   async function doLogout() {
-    try {
-      await ApiUtil.post('/admin-auth/logout', {});
-    } catch (error) {
-      // 忽略
-    }
-    CookieUtil.remove('admin_session');
-    sessionStorage.removeItem('admin_data');
-    window.location.href = 'login.html';
+    return AdminPage.logout();
   }
 </script>
 
