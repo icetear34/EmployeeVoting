@@ -65,7 +65,6 @@ namespace EmployeeVoting.Api.Application.Services
                 result.Add(new ActivityWithCandidatesDto
                 {
                     ActivityId = activity.Id,
-                    ActivityCode = activity.ActivityCode,
                     ActivityName = activity.Name,
                     Description = activity.Description,
                     StartTime = activity.StartTime,

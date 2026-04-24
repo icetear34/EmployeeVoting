@@ -6,7 +6,6 @@ namespace EmployeeVoting.Api.Domain.Entities
     public class VoteActivity
     {
         public Guid Id { get; set; }
-        public string ActivityCode { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         public DateTime StartTime { get; set; }

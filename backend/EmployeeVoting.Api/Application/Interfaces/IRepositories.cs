@@ -9,7 +9,6 @@ namespace EmployeeVoting.Api.Application.Interfaces
     public interface IVoteActivityRepository
     {
         Task<VoteActivity?> GetByIdAsync(Guid id);
-        Task<VoteActivity?> GetByActivityCodeAsync(string activityCode);
         Task<IEnumerable<VoteActivity>> GetAllAsync(bool includeDeleted = false);
         Task<IEnumerable<VoteActivity>> GetActiveActivitiesAsync();
 
@@ -21,8 +20,6 @@ namespace EmployeeVoting.Api.Application.Interfaces
         Task<Guid> CreateAsync(VoteActivity activity);
         Task UpdateAsync(VoteActivity activity);
         Task SoftDeleteAsync(Guid id);
-        Task<bool> ActivityCodeExistsAsync(string activityCode, Guid? excludeId = null);
-        Task<string> GenerateActivityCodeAsync();
     }
 
     /// <summary>

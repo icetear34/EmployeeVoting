@@ -68,11 +68,6 @@ namespace EmployeeVoting.Api.Dtos.Employee
         public Guid ActivityId { get; set; }
 
         /// <summary>
-        /// 活動代號
-        /// </summary>
-        public string ActivityCode { get; set; } = string.Empty;
-
-        /// <summary>
         /// 活動名稱
         /// </summary>
         public string ActivityName { get; set; } = string.Empty;

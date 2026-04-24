@@ -26,7 +26,6 @@ namespace EmployeeVoting.Api.Infrastructure.Persistence
             connection.Execute(@"
                 CREATE TABLE IF NOT EXISTS VoteActivity (
                     Id TEXT PRIMARY KEY,
-                    ActivityCode TEXT NOT NULL UNIQUE,
                     Name TEXT NOT NULL,
                     Description TEXT,
                     StartTime TEXT NOT NULL,
@@ -35,7 +34,6 @@ namespace EmployeeVoting.Api.Infrastructure.Persistence
                     CreatedBy TEXT NOT NULL,
                     IsDeleted INTEGER NOT NULL DEFAULT 0
                 );
-                CREATE INDEX IF NOT EXISTS IX_VoteActivity_ActivityCode ON VoteActivity(ActivityCode);
                 CREATE INDEX IF NOT EXISTS IX_VoteActivity_StartTime_EndTime ON VoteActivity(StartTime, EndTime);
             ");
 

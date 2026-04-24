@@ -464,7 +464,7 @@
     UIUtil.closeModal('activity-modal');
   }
 
-  function switchTab(tabId) {
+  async function switchTab(tabId) {
     // 更新 tab 按鈕狀態
     document.querySelectorAll('.modal-tab').forEach(tab => {
       tab.classList.toggle('active', tab.dataset.tab === tabId);
@@ -474,6 +474,43 @@
     document.querySelectorAll('.tab-content').forEach(content => {
       content.classList.toggle('active', content.id === `tab-${tabId}`);
     });
+
+    // results tab 隱藏儲存按鈕，其他 tab 顯示
+    const saveBtn = document.getElementById('save-activity-btn');
+    if (saveBtn) saveBtn.style.display = tabId === 'results' ? 'none' : '';
+
+    // 切換 tab 時重新從後端載入對應資料（只在編輯模式）
+    const id = document.getElementById('activity-id').value;
+    if (!id) return;
+
+    try {
+      const activity = await ApiUtil.get(`/admin/activities/${id}`);
+      editingActivity = activity;
+
+      if (tabId === 'basic') {
+        document.getElementById('activity-name').value = activity.name || activity.activityName || '';
+        document.getElementById('activity-desc').value = activity.description || '';
+        document.getElementById('activity-start').value = formatDateTimeLocal(activity.startTime);
+        document.getElementById('activity-end').value = formatDateTimeLocal(activity.endTime);
+        const isViewable = activity.isResultViewable || false;
+        document.getElementById('is-result-viewable').checked = isViewable;
+        toggleResultViewInputs(isViewable);
+        document.getElementById('result-view-start').value =
+          isViewable && activity.resultViewStartTime ? formatDateTimeLocal(activity.resultViewStartTime) : '';
+        document.getElementById('result-view-end').value =
+          isViewable && activity.resultViewEndTime ? formatDateTimeLocal(activity.resultViewEndTime) : '';
+      } else if (tabId === 'voters') {
+        voterList = activity.eligibleVoters || [];
+        renderVoterTable();
+      } else if (tabId === 'candidates') {
+        candidateList = activity.candidates || [];
+        renderCandidateList();
+      } else if (tabId === 'results') {
+        renderResultsTab(activity);
+      }
+    } catch (error) {
+      console.warn('重新載入 tab 資料失敗:', error);
+    }
   }
 
   function formatDateTimeLocal(dateStr) {
@@ -764,6 +801,42 @@
   // ═══════════════════════════════════════════════════════════════════════════
   async function saveActivity() {
     const id = document.getElementById('activity-id').value;
+
+    // 新增模式：一次送出所有資料
+    if (!id) {
+      await saveNewActivity();
+      return;
+    }
+
+    // 編輯模式：只儲存目前 active tab 的資料
+    const activeTabEl = document.querySelector('.modal-tab.active');
+    const activeTab = activeTabEl ? activeTabEl.dataset.tab : 'basic';
+
+    if (activeTab === 'results') return; // 結果頁無需儲存
+
+    const btn = document.getElementById('save-activity-btn');
+    UIUtil.setLoading(btn, true);
+
+    try {
+      if (activeTab === 'basic') {
+        await saveBasicTab(id);
+      } else if (activeTab === 'voters') {
+        await saveVotersTab(id);
+      } else if (activeTab === 'candidates') {
+        await saveCandidatesTab(id);
+      }
+      await loadActivities();
+      alert('更新成功');
+    } catch (error) {
+      if (error.message !== '驗證失敗') {
+        alert('儲存失敗：' + (error.message || '未知錯誤'));
+      }
+    } finally {
+      UIUtil.setLoading(btn, false);
+    }
+  }
+
+  async function saveNewActivity() {
     const name = document.getElementById('activity-name').value.trim();
     const description = document.getElementById('activity-desc').value.trim();
     const startTime = document.getElementById('activity-start').value;
@@ -772,111 +845,103 @@
     const resultViewStartTime = document.getElementById('result-view-start').value;
     const resultViewEndTime = document.getElementById('result-view-end').value;
 
-    // 驗證必填
     if (!name || !startTime || !endTime) {
       alert('請填寫活動名稱、開始時間與結束時間');
       return;
     }
-
     if (new Date(endTime) <= new Date(startTime)) {
       alert('結束時間必須晚於開始時間');
       return;
     }
 
     const validCandidates = candidateList.filter(c => c.name && c.name.trim());
-
     const btn = document.getElementById('save-activity-btn');
     UIUtil.setLoading(btn, true);
 
-    // 新增用 CreateVoteActivityRequest（ActivityName + EligibleVoters + Candidates 一起送）
-    // 更新用 UpdateVoteActivityRequest（Name，不含名單）；名單/候選人另由獨立 API 處理
-    const baseFields = {
+    const payload = {
+      activityName: name,
       description: description || '',
       startTime: new Date(startTime).toISOString(),
       endTime: new Date(endTime).toISOString(),
       isResultViewable,
-      resultViewStartTime:
-        isResultViewable && resultViewStartTime
-          ? new Date(resultViewStartTime).toISOString()
-          : null,
-      resultViewEndTime:
-        isResultViewable && resultViewEndTime
-          ? new Date(resultViewEndTime).toISOString()
-          : null,
+      resultViewStartTime: isResultViewable && resultViewStartTime ? new Date(resultViewStartTime).toISOString() : null,
+      resultViewEndTime:   isResultViewable && resultViewEndTime   ? new Date(resultViewEndTime).toISOString()   : null,
+      eligibleVoters: voterList.map(v => ({
+        employeeNo: v.employeeNo?.trim() || '',
+        name:       v.name?.trim()       || '',
+        department: v.department?.trim() || '',
+        birthDate:  v.birthDate?.trim()  || ''
+      })),
+      candidates: validCandidates.map(c => ({
+        name:        c.name.trim(),
+        description: c.description?.trim() || '',
+        imagePath:   c.imageUrl || ''
+      }))
     };
 
-    let payload;
-    if (id) {
-      // PUT：UpdateVoteActivityRequest — 欄位名稱為 name（不是 activityName）
-      payload = {
-        name: name,
-        ...baseFields
-      };
-    } else {
-      // POST：CreateVoteActivityRequest — 欄位名稱為 activityName，含名單與候選人
-      payload = {
-        activityName: name,
-        ...baseFields,
-        eligibleVoters: voterList.map(v => ({
-          employeeNo: v.employeeNo?.trim() || '',
-          name:       v.name?.trim()       || '',
-          department: v.department?.trim() || '',
-          birthDate:  v.birthDate?.trim()  || ''
-        })),
-        candidates: validCandidates.map(c => ({
-          name:        c.name.trim(),
-          description: c.description?.trim() || '',
-          imagePath:   c.imageUrl || ''
-        }))
-      };
-    }
-
     try {
-      if (id) {
-        // 更新：基本資料、名單、候選人各自對應獨立 API，並行送出
-        await Promise.all([
-          // PUT UpdateVoteActivityRequest（name, description, times...）
-          ApiUtil.put(`/admin/activities/${id}`, payload),
-
-          // PUT UpdateEligibleVotersRequest { voters: [...] }
-          ApiUtil.put(`/admin/activities/${id}/voters`, {
-            voters: voterList.map(v => ({
-              employeeNo: v.employeeNo?.trim() || '',
-              name:       v.name?.trim()       || '',
-              department: v.department?.trim() || '',
-              birthDate:  v.birthDate?.trim()  || ''
-            }))
-          }),
-
-          // PUT UpdateCandidatesRequest { candidates: [...] }
-          ApiUtil.put(`/admin/activities/${id}/candidates`, {
-            candidates: validCandidates.map((c, idx) => ({
-              id:          c.id && !String(c.id).startsWith('new_') ? c.id : null,
-              name:        c.name.trim(),
-              description: c.description?.trim() || '',
-              imagePath:   c.imageUrl || '',
-              sortOrder:   idx
-            }))
-          })
-        ]);
-
-        // 編輯成功：不關閉視窗，重新載入最新資料並提示
-        await loadActivities();
-        await openActivityModal(id);
-        alert('更新成功');
-      } else {
-        // 新增：一次送出所有資料（CreateVoteActivityRequest）
-        await ApiUtil.post('/admin/activities', payload);
-        alert('新增成功');
-        closeActivityModal();
-        await loadActivities();
-      }
-
+      await ApiUtil.post('/admin/activities', payload);
+      alert('新增成功');
+      closeActivityModal();
+      await loadActivities();
     } catch (error) {
       alert('儲存失敗：' + (error.message || '未知錯誤'));
     } finally {
       UIUtil.setLoading(btn, false);
     }
+  }
+
+  async function saveBasicTab(id) {
+    const name = document.getElementById('activity-name').value.trim();
+    const description = document.getElementById('activity-desc').value.trim();
+    const startTime = document.getElementById('activity-start').value;
+    const endTime = document.getElementById('activity-end').value;
+    const isResultViewable = document.getElementById('is-result-viewable').checked;
+    const resultViewStartTime = document.getElementById('result-view-start').value;
+    const resultViewEndTime = document.getElementById('result-view-end').value;
+
+    if (!name || !startTime || !endTime) {
+      alert('請填寫活動名稱、開始時間與結束時間');
+      throw new Error('驗證失敗');
+    }
+    if (new Date(endTime) <= new Date(startTime)) {
+      alert('結束時間必須晚於開始時間');
+      throw new Error('驗證失敗');
+    }
+
+    await ApiUtil.put(`/admin/activities/${id}`, {
+      name,
+      description: description || '',
+      startTime: new Date(startTime).toISOString(),
+      endTime: new Date(endTime).toISOString(),
+      isResultViewable,
+      resultViewStartTime: isResultViewable && resultViewStartTime ? new Date(resultViewStartTime).toISOString() : null,
+      resultViewEndTime:   isResultViewable && resultViewEndTime   ? new Date(resultViewEndTime).toISOString()   : null,
+    });
+  }
+
+  async function saveVotersTab(id) {
+    await ApiUtil.put(`/admin/activities/${id}/voters`, {
+      voters: voterList.map(v => ({
+        employeeNo: v.employeeNo?.trim() || '',
+        name:       v.name?.trim()       || '',
+        department: v.department?.trim() || '',
+        birthDate:  v.birthDate?.trim()  || ''
+      }))
+    });
+  }
+
+  async function saveCandidatesTab(id) {
+    const validCandidates = candidateList.filter(c => c.name && c.name.trim());
+    await ApiUtil.put(`/admin/activities/${id}/candidates`, {
+      candidates: validCandidates.map((c, idx) => ({
+        id:          c.id && !String(c.id).startsWith('new_') ? c.id : null,
+        name:        c.name.trim(),
+        description: c.description?.trim() || '',
+        imagePath:   c.imageUrl || '',
+        sortOrder:   idx
+      }))
+    });
   }
 
   // ═══════════════════════════════════════════════════════════════════════════

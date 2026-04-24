@@ -113,13 +113,11 @@ namespace EmployeeVoting.Api.Application.Services
         {
             ValidateActivityRequest(request.ActivityName, request.StartTime, request.EndTime, request.IsResultViewable,request.ResultViewStartTime,request.ResultViewEndTime);
 
-            var activityCode = await _voteActivityRepository.GenerateActivityCodeAsync();
             var now = DateTime.UtcNow;
 
             var activity = new VoteActivity
             {
                 Id = Guid.NewGuid(),
-                ActivityCode = activityCode,
                 Name = request.ActivityName.Trim(),
                 Description = request.Description?.Trim(),
                 StartTime = request.StartTime,

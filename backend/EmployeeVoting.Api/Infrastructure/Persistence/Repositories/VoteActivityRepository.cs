@@ -23,8 +23,9 @@ namespace EmployeeVoting.Api.Infrastructure.Persistence.Repositories
             using var connection = _connectionFactory.CreateConnection();
             
             const string sql = @"
-                SELECT Id, ActivityCode, Name, Description, StartTime, EndTime, 
-                       CreatedAt, CreatedBy, IsDeleted
+                SELECT Id, Name, Description, StartTime, EndTime, 
+                       CreatedAt, CreatedBy, IsDeleted,
+                       IsResultViewable, ResultViewStartTime, ResultViewEndTime
                 FROM VoteActivity 
                 WHERE Id = @Id";
             
@@ -32,27 +33,15 @@ namespace EmployeeVoting.Api.Infrastructure.Persistence.Repositories
         }
 
         /// <inheritdoc/>
-        public async Task<VoteActivity?> GetByActivityCodeAsync(string activityCode)
-        {
-            using var connection = _connectionFactory.CreateConnection();
-            
-            const string sql = @"
-                SELECT Id, ActivityCode, Name, Description, StartTime, EndTime, 
-                       CreatedAt, CreatedBy, IsDeleted
-                FROM VoteActivity 
-                WHERE ActivityCode = @ActivityCode AND IsDeleted = 0";
-            
-            return await connection.QueryFirstOrDefaultAsync<VoteActivity>(sql, new { ActivityCode = activityCode });
-        }
-
         /// <inheritdoc/>
         public async Task<IEnumerable<VoteActivity>> GetAllAsync(bool includeDeleted = false)
         {
             using var connection = _connectionFactory.CreateConnection();
             
             var sql = @"
-                SELECT Id, ActivityCode, Name, Description, StartTime, EndTime, 
-                       CreatedAt, CreatedBy, IsDeleted
+                SELECT Id, Name, Description, StartTime, EndTime, 
+                       CreatedAt, CreatedBy, IsDeleted,
+                       IsResultViewable, ResultViewStartTime, ResultViewEndTime
                 FROM VoteActivity";
             
             if (!includeDeleted)
@@ -71,8 +60,9 @@ namespace EmployeeVoting.Api.Infrastructure.Persistence.Repositories
             using var connection = _connectionFactory.CreateConnection();
             
             const string sql = @"
-                SELECT Id, ActivityCode, Name, Description, StartTime, EndTime, 
-                       CreatedAt, CreatedBy, IsDeleted
+                SELECT Id, Name, Description, StartTime, EndTime, 
+                       CreatedAt, CreatedBy, IsDeleted,
+                       IsResultViewable, ResultViewStartTime, ResultViewEndTime
                 FROM VoteActivity 
                 WHERE IsDeleted = 0 
                   AND datetime('now') >= datetime(StartTime) 
@@ -89,9 +79,11 @@ namespace EmployeeVoting.Api.Infrastructure.Persistence.Repositories
             
             const string sql = @"
                 INSERT INTO VoteActivity 
-                    (Id, ActivityCode, Name, Description, StartTime, EndTime, CreatedAt, CreatedBy, IsDeleted)
+                    (Id, Name, Description, StartTime, EndTime, CreatedAt, CreatedBy, IsDeleted,
+                     IsResultViewable, ResultViewStartTime, ResultViewEndTime)
                 VALUES 
-                    (@Id, @ActivityCode, @Name, @Description, @StartTime, @EndTime, @CreatedAt, @CreatedBy, @IsDeleted)";
+                    (@Id, @Name, @Description, @StartTime, @EndTime, @CreatedAt, @CreatedBy, @IsDeleted,
+                     @IsResultViewable, @ResultViewStartTime, @ResultViewEndTime)";
             
             await connection.ExecuteAsync(sql, activity);
             
@@ -131,23 +123,6 @@ namespace EmployeeVoting.Api.Infrastructure.Persistence.Repositories
         }
 
         /// <inheritdoc/>
-        public async Task<bool> ActivityCodeExistsAsync(string activityCode, Guid? excludeId = null)
-        {
-            using var connection = _connectionFactory.CreateConnection();
-            
-            var sql = "SELECT COUNT(1) FROM VoteActivity WHERE ActivityCode = @ActivityCode AND IsDeleted = 0";
-            
-            if (excludeId.HasValue)
-            {
-                sql += " AND Id != @ExcludeId";
-            }
-            
-            var count = await connection.ExecuteScalarAsync<int>(sql, new { ActivityCode = activityCode, ExcludeId = excludeId });
-            
-            return count > 0;
-        }
-
-        /// <inheritdoc/>
         public async Task<(IEnumerable<VoteActivity> Items, int TotalCount)> GetPagedAsync(ActivityQueryRequest query)
         {
             using var connection = _connectionFactory.CreateConnection();
@@ -183,7 +158,7 @@ namespace EmployeeVoting.Api.Infrastructure.Persistence.Repositories
             var countSql = $"SELECT COUNT(1) FROM VoteActivity {baseWhere}";
 
             var dataSql = $@"
-                SELECT Id, ActivityCode, Name, Description, StartTime, EndTime,
+                SELECT Id, Name, Description, StartTime, EndTime,
                        CreatedAt, CreatedBy, IsDeleted,
                        IsResultViewable, ResultViewStartTime, ResultViewEndTime
                 FROM VoteActivity
@@ -202,39 +177,6 @@ namespace EmployeeVoting.Api.Infrastructure.Persistence.Repositories
             var items = await connection.QueryAsync<VoteActivity>(dataSql, param);
 
             return (items, total);
-        }
-
-        /// <inheritdoc/>
-        public async Task<string> GenerateActivityCodeAsync()
-        {
-            using var connection = _connectionFactory.CreateConnection();
-            
-            // 產生格式：VOTE-YYYYMMDD-XXXX（流水號）
-            var datePrefix = $"VOTE-{DateTime.UtcNow:yyyyMMdd}-";
-            
-            // 取得今天最大的流水號
-            const string sql = @"
-                SELECT ActivityCode 
-                FROM VoteActivity 
-                WHERE ActivityCode LIKE @Prefix || '%'
-                ORDER BY ActivityCode DESC 
-                LIMIT 1";
-            
-            var lastCode = await connection.QueryFirstOrDefaultAsync<string>(sql, new { Prefix = datePrefix });
-            
-            int nextNumber = 1;
-            
-            if (!string.IsNullOrEmpty(lastCode))
-            {
-                // 解析流水號
-                var parts = lastCode.Split('-');
-                if (parts.Length == 3 && int.TryParse(parts[2], out int lastNumber))
-                {
-                    nextNumber = lastNumber + 1;
-                }
-            }
-            
-            return $"{datePrefix}{nextNumber:D4}";
         }
     }
 }
