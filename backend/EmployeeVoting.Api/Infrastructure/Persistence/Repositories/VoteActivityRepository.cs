@@ -65,8 +65,8 @@ namespace EmployeeVoting.Api.Infrastructure.Persistence.Repositories
                        IsResultViewable, ResultViewStartTime, ResultViewEndTime
                 FROM VoteActivity 
                 WHERE IsDeleted = 0 
-                  AND datetime('now') >= datetime(StartTime) 
-                  AND datetime('now') <= datetime(EndTime)
+                  AND datetime('now','localtime') >= datetime(StartTime) 
+                  AND datetime('now','localtime') <= datetime(EndTime)
                 ORDER BY StartTime ASC";
             
             return await connection.QueryAsync<VoteActivity>(sql);
@@ -145,9 +145,9 @@ namespace EmployeeVoting.Api.Infrastructure.Persistence.Repositories
             // 狀態轉為時間條件（SQLite 以 datetime() 比較）
             var statusWhere = (query.Status?.ToLower()) switch
             {
-                "pending" => "AND datetime('now') < datetime(StartTime)",
-                "active"  => "AND datetime('now') >= datetime(StartTime) AND datetime('now') <= datetime(EndTime)",
-                "ended"   => "AND datetime('now') > datetime(EndTime)",
+                "pending" => "AND datetime('now','localtime') < datetime(StartTime)",
+                "active"  => "AND datetime('now','localtime') >= datetime(StartTime) AND datetime('now','localtime') <= datetime(EndTime)",
+                "ended"   => "AND datetime('now','localtime') > datetime(EndTime)",
                 _         => ""
             };
 

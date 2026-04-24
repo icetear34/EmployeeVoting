@@ -68,7 +68,7 @@ namespace EmployeeVoting.Api.Application.Services
             {
                 Role = UserRoles.Admin,
                 AdminUserId = admin.Id,
-                ExpireAt = DateTime.UtcNow.AddMinutes(_settings.SessionExpireMinutes)
+                ExpireAt = DateTime.Now.AddMinutes(_settings.SessionExpireMinutes)
             };
 
             var token = await _sessionTokenRepository.CreateAsync(session);
@@ -142,7 +142,7 @@ namespace EmployeeVoting.Api.Application.Services
                 return (false, null);
             }
 
-            if (session.ExpireAt < DateTime.UtcNow)
+            if (session.ExpireAt < DateTime.Now)
             {
                 return (false, null);
             }

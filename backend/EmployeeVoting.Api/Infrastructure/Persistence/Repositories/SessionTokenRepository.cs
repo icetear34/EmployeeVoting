@@ -32,7 +32,7 @@ namespace EmployeeVoting.Api.Infrastructure.Persistence.Repositories
             using var connection = _connectionFactory.CreateConnection();
             session.Id = Guid.NewGuid();
             session.Token = GenerateToken();
-            session.CreatedAt = DateTime.UtcNow;
+            session.CreatedAt = DateTime.Now;
             session.IsRevoked = false;
 
             await connection.ExecuteAsync(
@@ -74,7 +74,7 @@ namespace EmployeeVoting.Api.Infrastructure.Persistence.Repositories
             using var connection = _connectionFactory.CreateConnection();
             await connection.ExecuteAsync(
                 @"DELETE FROM SessionToken WHERE ExpireAt < @Now OR IsRevoked = 1",
-                new { Now = DateTime.UtcNow });
+                new { Now = DateTime.Now });
         }
 
         private static string GenerateToken()

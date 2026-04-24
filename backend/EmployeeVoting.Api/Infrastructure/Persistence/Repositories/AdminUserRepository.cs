@@ -60,8 +60,8 @@ namespace EmployeeVoting.Api.Infrastructure.Persistence.Repositories
         {
             using var connection = _connectionFactory.CreateConnection();
             adminUser.Id = Guid.NewGuid();
-            adminUser.CreatedAt = DateTime.UtcNow;
-            adminUser.UpdatedAt = DateTime.UtcNow;
+            adminUser.CreatedAt = DateTime.Now;
+            adminUser.UpdatedAt = DateTime.Now;
 
             await connection.ExecuteAsync(
                 @"INSERT INTO AdminUser (Id, Account, Password, DisplayName, IsEnabled, CreatedAt, UpdatedAt)
@@ -74,7 +74,7 @@ namespace EmployeeVoting.Api.Infrastructure.Persistence.Repositories
         public async Task UpdateAsync(AdminUser adminUser)
         {
             using var connection = _connectionFactory.CreateConnection();
-            adminUser.UpdatedAt = DateTime.UtcNow;
+            adminUser.UpdatedAt = DateTime.Now;
 
             await connection.ExecuteAsync(
                 @"UPDATE AdminUser 

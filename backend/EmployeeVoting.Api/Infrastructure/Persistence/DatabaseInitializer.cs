@@ -149,7 +149,7 @@ namespace EmployeeVoting.Api.Infrastructure.Persistence
 
             if (existingAdmin == 0)
             {
-                var now = DateTime.UtcNow.ToString("O");
+                var now = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss");
                 connection.Execute(@"
                     INSERT INTO AdminUser (Id, Account, Password, DisplayName, IsEnabled, CreatedAt, UpdatedAt)
                     VALUES (@Id, @Account, @Password, @DisplayName, @IsEnabled, @CreatedAt, @UpdatedAt)",

@@ -911,11 +911,11 @@
     const payload = {
       activityName: name,
       description: description || '',
-      startTime: new Date(startTime).toISOString(),
-      endTime: new Date(endTime).toISOString(),
+      startTime: startTime + ':00',
+      endTime: endTime + ':00',
       isResultViewable,
-      resultViewStartTime: isResultViewable && resultViewStartTime ? new Date(resultViewStartTime).toISOString() : null,
-      resultViewEndTime:   isResultViewable && resultViewEndTime   ? new Date(resultViewEndTime).toISOString()   : null,
+      resultViewStartTime: isResultViewable && resultViewStartTime ? resultViewStartTime + ':00' : null,
+      resultViewEndTime:   isResultViewable && resultViewEndTime   ? resultViewEndTime   + ':00' : null,
       eligibleVoters: voterList.map(v => ({
         employeeNo: v.employeeNo?.trim() || '',
         name:       v.name?.trim()       || '',
@@ -962,11 +962,11 @@
     await ApiUtil.put(`/admin/activities/${id}`, {
       name,
       description: description || '',
-      startTime: new Date(startTime).toISOString(),
-      endTime: new Date(endTime).toISOString(),
+      startTime: startTime + ':00',
+      endTime: endTime + ':00',
       isResultViewable,
-      resultViewStartTime: isResultViewable && resultViewStartTime ? new Date(resultViewStartTime).toISOString() : null,
-      resultViewEndTime:   isResultViewable && resultViewEndTime   ? new Date(resultViewEndTime).toISOString()   : null,
+      resultViewStartTime: isResultViewable && resultViewStartTime ? resultViewStartTime + ':00' : null,
+      resultViewEndTime:   isResultViewable && resultViewEndTime   ? resultViewEndTime   + ':00' : null,
     });
   }
 

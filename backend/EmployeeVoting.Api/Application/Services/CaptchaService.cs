@@ -42,7 +42,7 @@ namespace EmployeeVoting.Api.Application.Services
             {
                 Code = code.ToUpper(),
                 Purpose = purpose,
-                ExpireAt = DateTime.UtcNow.AddMinutes(_settings.CaptchaExpireMinutes)
+                ExpireAt = DateTime.Now.AddMinutes(_settings.CaptchaExpireMinutes)
             };
 
             var captchaId = await _captchaRepository.CreateAsync(captchaSession);
@@ -73,7 +73,7 @@ namespace EmployeeVoting.Api.Application.Services
                 return (false, ErrorCodes.InvalidCaptcha);
             }
 
-            if (captchaSession.ExpireAt < DateTime.UtcNow)
+            if (captchaSession.ExpireAt < DateTime.Now)
             {
                 return (false, ErrorCodes.CaptchaExpired);
             }

@@ -1,4 +1,4 @@
-using EmployeeVoting.Api.Application.Interfaces;
+﻿using EmployeeVoting.Api.Application.Interfaces;
 using EmployeeVoting.Api.Common;
 using EmployeeVoting.Api.Domain.Entities;
 using EmployeeVoting.Api.Dtos.Employee;
@@ -33,7 +33,7 @@ namespace EmployeeVoting.Api.Application.Services
             var voters = (await _eligibleVoterRepository.GetByEmployeeNoAsync(employeeNo)).ToList();
             if (voters.Count == 0) return new List<ActivityWithCandidatesDto>();
 
-            var now = DateTime.UtcNow;
+            var now = DateTime.Now;
             var result = new List<ActivityWithCandidatesDto>();
 
             foreach (var voter in voters)
@@ -92,7 +92,7 @@ namespace EmployeeVoting.Api.Application.Services
                 return (new VoteResponse { Success = false, Message = "請選擇候選人" }, ErrorCodes.ValidationFailed);
             }
 
-            var now = DateTime.UtcNow;
+            var now = DateTime.Now;
             var records = new List<VoteRecord>();
 
             foreach (var vote in request.Votes)
@@ -177,7 +177,7 @@ namespace EmployeeVoting.Api.Application.Services
         private static bool IsResultViewable(VoteActivity activity)
         {
             if (!activity.IsResultViewable) return false;
-            var now = DateTime.UtcNow;
+            var now = DateTime.Now;
             if (activity.ResultViewStartTime.HasValue && now < activity.ResultViewStartTime.Value) return false;
             if (activity.ResultViewEndTime.HasValue && now > activity.ResultViewEndTime.Value) return false;
             return true;

@@ -12,7 +12,7 @@ namespace EmployeeVoting.Api.Extensions
         /// </summary>
         public static ActivityStatus GetStatus(DateTime startTime, DateTime endTime)
         {
-            var now = DateTime.UtcNow;
+            var now = DateTime.Now;
             if (now < startTime)
                 return ActivityStatus.NotStarted;
             if (now > endTime)

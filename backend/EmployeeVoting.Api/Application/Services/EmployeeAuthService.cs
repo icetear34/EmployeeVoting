@@ -68,7 +68,7 @@ namespace EmployeeVoting.Api.Application.Services
             {
                 Role = UserRoles.Employee,
                 EmployeeNo = request.EmployeeNo,
-                ExpireAt = DateTime.UtcNow.AddMinutes(_settings.SessionExpireMinutes)
+                ExpireAt = DateTime.Now.AddMinutes(_settings.SessionExpireMinutes)
             };
 
             var token = await _sessionTokenRepository.CreateAsync(session);
@@ -138,7 +138,7 @@ namespace EmployeeVoting.Api.Application.Services
 
             var session = await _sessionTokenRepository.GetByTokenAsync(sessionToken);
 
-            if (session == null || session.IsRevoked || session.ExpireAt < DateTime.UtcNow)
+            if (session == null || session.IsRevoked || session.ExpireAt < DateTime.Now)
             {
                 return (false, null);
             }

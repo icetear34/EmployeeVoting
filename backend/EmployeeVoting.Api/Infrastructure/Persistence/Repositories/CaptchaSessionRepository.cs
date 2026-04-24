@@ -31,7 +31,7 @@ namespace EmployeeVoting.Api.Infrastructure.Persistence.Repositories
             using var connection = _connectionFactory.CreateConnection();
             captchaSession.Id = Guid.NewGuid();
             captchaSession.CaptchaId = Guid.NewGuid().ToString("N");
-            captchaSession.CreatedAt = DateTime.UtcNow;
+            captchaSession.CreatedAt = DateTime.Now;
             captchaSession.IsUsed = false;
 
             await connection.ExecuteAsync(
@@ -55,7 +55,7 @@ namespace EmployeeVoting.Api.Infrastructure.Persistence.Repositories
             using var connection = _connectionFactory.CreateConnection();
             await connection.ExecuteAsync(
                 @"DELETE FROM CaptchaSession WHERE ExpireAt < @Now OR IsUsed = 1",
-                new { Now = DateTime.UtcNow });
+                new { Now = DateTime.Now });
         }
     }
 }

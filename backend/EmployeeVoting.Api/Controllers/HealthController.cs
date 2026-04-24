@@ -18,7 +18,7 @@ namespace EmployeeVoting.Api.Controllers
             return Ok(new 
             { 
                 status = "healthy",
-                timestamp = DateTime.UtcNow,
+                timestamp = DateTime.Now,
                 version = "1.0.0"
             });
         }

@@ -123,7 +123,7 @@ namespace EmployeeVoting.Api.Application.Services
         {
             ValidateActivityRequest(request.ActivityName, request.StartTime, request.EndTime, request.IsResultViewable,request.ResultViewStartTime,request.ResultViewEndTime);
 
-            var now = DateTime.UtcNow;
+            var now = DateTime.Now;
 
             var activity = new VoteActivity
             {
@@ -226,7 +226,7 @@ namespace EmployeeVoting.Api.Application.Services
                 throw new NotFoundException("活動不存在");
             }
 
-            var now = DateTime.UtcNow;
+            var now = DateTime.Now;
             var candidates = request.Candidates.Select((c, idx) => new Candidate
             {
                 Id = c.Id ?? Guid.NewGuid(),
@@ -251,7 +251,7 @@ namespace EmployeeVoting.Api.Application.Services
                 throw new NotFoundException("活動不存在");
             }
 
-            var now = DateTime.UtcNow;
+            var now = DateTime.Now;
             var voters = request.Voters.Select(v => new EligibleVoter
             {
                 Id = Guid.NewGuid(),
@@ -295,7 +295,7 @@ namespace EmployeeVoting.Api.Application.Services
 
         private static string GetActivityStatus(DateTime startTime, DateTime endTime)
         {
-            var now = DateTime.UtcNow;
+            var now = DateTime.Now;
             if (now < startTime) return "未開始";
             if (now <= endTime) return "進行中";
             return "已結束";
