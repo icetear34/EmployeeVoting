@@ -40,20 +40,24 @@ namespace EmployeeVoting.Api.Application.Services
             {
                 var activity = await _voteActivityRepository.GetByIdAsync(voter.VoteActivityId);
 
-                // 只列出未刪除且時間內的活動
+                // 跳過已刪除
                 if (activity == null || activity.IsDeleted) continue;
-                if (activity.StartTime > now || activity.EndTime < now) continue;
+
+                var isActive = activity.StartTime <= now && activity.EndTime >= now;
+                var hasVoted = await _voteRecordRepository.HasVotedAsync(activity.Id, employeeNo);
+                var isViewable = IsResultViewable(activity);
+
+                // 顯示條件：進行中的活動，或已結束且已投票且結果可查閱
+                if (!isActive && !(hasVoted && isViewable)) continue;
 
                 var candidates = (await _candidateRepository.GetByActivityIdAsync(activity.Id))
                     .Where(c => c.IsEnabled)
                     .OrderBy(c => c.SortOrder)
                     .ToList();
 
-                var hasVoted = await _voteRecordRepository.HasVotedAsync(activity.Id, employeeNo);
-
                 // 若已投票且結果可查閱，計算佔比
                 List<ResultBarDto>? resultBars = null;
-                if (hasVoted && IsResultViewable(activity))
+                if (hasVoted && isViewable)
                 {
                     resultBars = await BuildResultBarsAsync(activity.Id, candidates);
                 }
@@ -72,7 +76,7 @@ namespace EmployeeVoting.Api.Application.Services
                         Id = c.Id,
                         Name = c.Name,
                         Description = c.Description,
-                        ImageUrl = string.IsNullOrWhiteSpace(c.ImagePath) ? "" : $"/uploads/{c.ImagePath}"
+                        ImageUrl = string.IsNullOrWhiteSpace(c.ImagePath) ? "" : $"{c.ImagePath}"
                     }).ToList(),
                     ResultBars = resultBars
                 });

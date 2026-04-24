@@ -60,6 +60,7 @@ namespace EmployeeVoting.Api.Controllers
                 var statusCode = errorCode switch
                 {
                     ErrorCodes.InvalidCaptcha or ErrorCodes.CaptchaExpired => StatusCodes.Status400BadRequest,
+                    ErrorCodes.ActivityNotActive => StatusCodes.Status403Forbidden,
                     _ => StatusCodes.Status401Unauthorized
                 };
                 return StatusCode(statusCode, new ErrorResponse

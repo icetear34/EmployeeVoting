@@ -101,15 +101,20 @@
     const activities = employeeData.activities || [];
     const pendingActivities = activities.filter(a => !a.hasVoted);
     const allVoted = activities.length > 0 && pendingActivities.length === 0;
+    const noActivities = activities.length === 0;
 
     // 更新標題
     document.getElementById('hub-nav-title').textContent = allVoted ? '投票結果' : '投票活動';
-    document.getElementById('hub-heading').textContent = allVoted
-      ? '感謝您完成所有投票！'
-      : '您有以下投票活動';
-    document.getElementById('hub-sub').textContent = allVoted
-      ? '以下為各活動的即時得票佔比'
-      : '請在每個活動中選擇一位候選人，確認後送出投票';
+    document.getElementById('hub-heading').textContent = noActivities
+      ? '目前沒有進行中的投票活動'
+      : allVoted
+        ? '感謝您完成所有投票！'
+        : '您有以下投票活動';
+    document.getElementById('hub-sub').textContent = noActivities
+      ? '您目前不在任何進行中活動的投票名單內，或活動尚未開始'
+      : allVoted
+        ? '以下為各活動的即時得票佔比'
+        : '請在每個活動中選擇一位候選人，確認後送出投票';
 
     // 已全部投票完成的 banner
     const banner = document.getElementById('all-voted-banner');
@@ -118,6 +123,16 @@
     // 渲染活動區塊
     const container = document.getElementById('hub-activities');
     container.innerHTML = '';
+
+    if (noActivities) {
+      container.innerHTML = `
+        <div style="text-align:center;padding:48px 24px;color:var(--ink-3)">
+          <div style="font-size:40px;margin-bottom:16px">📋</div>
+          <div style="font-size:15px">請確認活動時間，或聯絡管理員</div>
+        </div>
+      `;
+      return;
+    }
 
     activities.forEach(act => {
       const block = createActivityBlock(act);
@@ -171,7 +186,7 @@
       (act.candidates || []).forEach(cand => {
         const card = document.createElement('div');
         card.className = 'candidate-card' + (selectedMap[act.activityId] === cand.id ? ' selected' : '');
-
+        
         card.innerHTML = `
           <div class="cand-avatar">
             ${cand.imageUrl
@@ -184,7 +199,7 @@
             ${cand.description ? `<div class="cand-desc">${UIUtil.escapeHtml(cand.description)}</div>` : ''}
           </div>
         `;
-
+        
         card.onclick = () => selectCandidate(act.activityId, cand.id);
         grid.appendChild(card);
       });
@@ -267,7 +282,7 @@
   function openBulkConfirm() {
     const activities = employeeData.activities || [];
     const toSubmit = activities.filter(a => !a.hasVoted && selectedMap[a.activityId]);
-
+    
     if (toSubmit.length === 0) return;
 
     const lines = toSubmit.map(act => {
@@ -299,7 +314,7 @@
   async function submitVote() {
     const activities = employeeData.activities || [];
     const toSubmit = activities.filter(a => !a.hasVoted && selectedMap[a.activityId]);
-
+    
     if (toSubmit.length === 0) {
       closeConfirm();
       return;
@@ -340,359 +355,6 @@
     }
 
     CookieUtil.remove('employee_logged_in');
-    window.location.href = 'login.html';
-  }
-
-</script>
-
-</body>
-</html>
-
-    if (!session) {
-      window.location.href = 'login.html';
-      return;
-    }
-
-    // 嘗試從 sessionStorage 取得資料
-    const storedData = sessionStorage.getItem('employee_data');
-    if (storedData) {
-      employeeData = JSON.parse(storedData);
-      processEmployeeData();
-    }
-
-    // 從後端驗證並取得最新資料
-    try {
-      const response = await ApiUtil.get('/employee-auth/me');
-      employeeData = response;
-      sessionStorage.setItem('employee_data', JSON.stringify(response));
-      processEmployeeData();
-    } catch (error) {
-      if (error.status === 401) {
-        CookieUtil.remove('employee_session');
-        sessionStorage.removeItem('employee_data');
-        window.location.href = 'login.html';
-        return;
-      }
-      // 若只是網路問題但有快取資料，繼續使用
-      if (!employeeData) {
-        alert('載入失敗，請重新登入。');
-        window.location.href = 'login.html';
-      }
-    }
-  }
-
-  function processEmployeeData() {
-    // 處理已投票的活動
-    votedMap = {};
-    if (employeeData.activities) {
-      employeeData.activities.forEach(act => {
-        if (act.hasVoted) {
-          votedMap[act.activityId] = true;
-        }
-      });
-    }
-
-    // 處理可查閱的活動（已結束但在查閱期限內）
-    if (employeeData.viewableActivities) {
-      employeeData.viewableActivities.forEach(act => {
-        votedMap[act.activityId] = true;
-      });
-    }
-
-    renderHub();
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // 畫面渲染
-  // ═══════════════════════════════════════════════════════════════════════════
-  function renderHub() {
-    if (!employeeData) return;
-
-    const activities = employeeData.activities || [];
-    const viewableActivities = employeeData.viewableActivities || [];
-    const allActivities = [...activities, ...viewableActivities];
-    
-    const pendingActivities = activities.filter(a => !a.hasVoted);
-    const allVoted = pendingActivities.length === 0;
-
-    // 更新標題
-    document.getElementById('hub-nav-title').textContent = allVoted ? '投票結果' : '投票活動';
-    document.getElementById('hub-heading').textContent = allVoted 
-      ? '感謝您完成所有投票！' 
-      : '您有以下投票活動';
-    document.getElementById('hub-sub').textContent = allVoted
-      ? '以下為各活動的即時得票佔比'
-      : '請在每個活動中選擇一位候選人，確認後送出投票';
-    
-    // 已全部投票完成的 banner
-    const banner = document.getElementById('all-voted-banner');
-    banner.classList.toggle('show', allVoted);
-
-    // 渲染活動區塊
-    const container = document.getElementById('hub-activities');
-    container.innerHTML = '';
-
-    allActivities.forEach(act => {
-      const block = createActivityBlock(act);
-      container.appendChild(block);
-    });
-
-    // 更新底部按鈕狀態
-    updateHubFooter(pendingActivities);
-  }
-
-  function createActivityBlock(act) {
-    const hasVoted = act.hasVoted || votedMap[act.activityId];
-    const isEnded = new Date(act.endTime) < new Date();
-    
-    const block = document.createElement('div');
-    block.className = 'activity-block';
-
-    // Header
-    let badgeClass = hasVoted ? 'badge-voted' : 'badge-active';
-    let badgeText = hasVoted ? '已投票' : '進行中';
-    if (isEnded && !hasVoted) {
-      badgeClass = 'badge-ended';
-      badgeText = '已結束';
-    } else if (isEnded && hasVoted) {
-      badgeText = '已結束';
-      badgeClass = 'badge-voted';
-    }
-
-    block.innerHTML = `
-      <div class="activity-block-header">
-        <div class="abh-left">
-          <div class="abh-name">${UIUtil.escapeHtml(act.activityName || act.name)}</div>
-          ${act.description ? `<div class="abh-desc">${UIUtil.escapeHtml(act.description)}</div>` : ''}
-          <div class="abh-meta">${act.activityCode} · ${UIUtil.formatDateTime(act.startTime, false)} — ${UIUtil.formatDateTime(act.endTime, false)}</div>
-        </div>
-        <span class="badge ${badgeClass}">${badgeText}</span>
-      </div>
-    `;
-
-    if (hasVoted) {
-      // 已投票：顯示確認訊息和結果佔比
-      const votedRow = document.createElement('div');
-      votedRow.className = 'voted-row';
-      votedRow.innerHTML = `
-        <div class="voted-check">✓</div>
-        <div style="font-size:14px"><strong>您已完成此活動的投票</strong></div>
-      `;
-      block.appendChild(votedRow);
-
-      // 顯示得票佔比（如果可查閱）
-      if (act.isViewableResult && act.resultBars) {
-        appendResultBars(block, act.resultBars);
-      } else if (act.candidates) {
-        // 計算佔比並顯示
-        const totalVotes = act.candidates.reduce((sum, c) => sum + (c.votes || 0), 0);
-        if (totalVotes > 0) {
-          const bars = act.candidates.map(c => ({
-            name: c.name,
-            percent: Math.round((c.votes || 0) / totalVotes * 100)
-          }));
-          appendResultBars(block, bars, totalVotes);
-        }
-      }
-    } else {
-      // 未投票：顯示候選人卡片
-      const grid = document.createElement('div');
-      grid.className = 'activity-candidates';
-
-      (act.candidates || []).forEach(cand => {
-        const card = document.createElement('div');
-        card.className = 'candidate-card' + (selectedMap[act.activityId] === cand.id ? ' selected' : '');
-        
-        card.innerHTML = `
-          <div class="cand-avatar">
-            ${cand.imageUrl 
-              ? `<img src="${cand.imageUrl}" alt="${UIUtil.escapeHtml(cand.name)}">`
-              : (cand.emoji || '👤')
-            }
-          </div>
-          <div class="cand-info">
-            <div class="cand-name">${UIUtil.escapeHtml(cand.name)}</div>
-            ${cand.description ? `<div class="cand-desc">${UIUtil.escapeHtml(cand.description)}</div>` : ''}
-          </div>
-        `;
-        
-        card.onclick = () => selectCandidate(act.activityId, cand.id);
-        grid.appendChild(card);
-      });
-
-      block.appendChild(grid);
-    }
-
-    return block;
-  }
-
-  function appendResultBars(block, bars, totalVotes) {
-    const wrap = document.createElement('div');
-    wrap.className = 'result-bar-wrap';
-    
-    let headerHtml = '<div class="rb-header"><span>得票佔比</span>';
-    if (totalVotes) {
-      headerHtml += `<span>共 ${totalVotes} 票</span>`;
-    }
-    headerHtml += '</div>';
-
-    wrap.innerHTML = headerHtml + bars.map(bar => `
-      <div class="rb-row">
-        <div class="rb-name" title="${UIUtil.escapeHtml(bar.name)}">${UIUtil.escapeHtml(bar.name)}</div>
-        <div class="rb-track">
-          <div class="rb-fill" style="width:0%" data-pct="${bar.percent}"></div>
-        </div>
-        <div class="rb-pct">${bar.percent}%</div>
-      </div>
-    `).join('');
-
-    block.appendChild(wrap);
-
-    // 動畫顯示進度條
-    setTimeout(() => {
-      wrap.querySelectorAll('.rb-fill').forEach(el => {
-        el.style.width = el.dataset.pct + '%';
-      });
-    }, 60);
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // 選擇候選人
-  // ═══════════════════════════════════════════════════════════════════════════
-  function selectCandidate(activityId, candidateId) {
-    selectedMap[activityId] = candidateId;
-    renderHub();
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // 底部按鈕狀態
-  // ═══════════════════════════════════════════════════════════════════════════
-  function updateHubFooter(pendingActivities) {
-    const footer = document.getElementById('hub-footer');
-    const btn = document.getElementById('hub-submit-btn');
-    const hint = document.getElementById('hub-footer-hint');
-
-    if (pendingActivities.length === 0) {
-      footer.classList.remove('visible');
-      return;
-    }
-
-    footer.classList.add('visible');
-
-    const selectedCount = pendingActivities.filter(a => selectedMap[a.activityId]).length;
-
-    if (selectedCount === 0) {
-      btn.disabled = true;
-      hint.textContent = '請先為每個活動選擇一位候選人';
-    } else if (selectedCount < pendingActivities.length) {
-      btn.disabled = false;
-      const unselectedNames = pendingActivities
-        .filter(a => !selectedMap[a.activityId])
-        .map(a => a.activityName || a.name)
-        .join('、');
-      hint.textContent = `尚未選擇：${unselectedNames}`;
-    } else {
-      btn.disabled = false;
-      hint.textContent = '';
-    }
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // 確認投票
-  // ═══════════════════════════════════════════════════════════════════════════
-  function openBulkConfirm() {
-    const activities = employeeData.activities || [];
-    const toSubmit = activities.filter(a => !a.hasVoted && selectedMap[a.activityId]);
-    
-    if (toSubmit.length === 0) return;
-
-    const lines = toSubmit.map(act => {
-      const cand = act.candidates.find(c => c.id === selectedMap[act.activityId]);
-      return `
-        <div style="padding:8px 0;border-bottom:1px solid var(--border)">
-          <span style="font-size:12px;color:var(--ink-3)">${UIUtil.escapeHtml(act.activityName || act.name)}</span><br>
-          <strong>${cand ? UIUtil.escapeHtml(cand.name) : '未知'}</strong>
-        </div>
-      `;
-    }).join('');
-
-    document.getElementById('confirm-modal-body').innerHTML = `
-      <div style="margin-bottom:8px">確定送出以下投票？</div>
-      ${lines}
-      <div style="margin-top:12px;font-size:12px;color:var(--ink-3)">送出後無法修改</div>
-    `;
-
-    UIUtil.showModal('confirm-modal');
-  }
-
-  function closeConfirm() {
-    UIUtil.closeModal('confirm-modal');
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // 送出投票
-  // ═══════════════════════════════════════════════════════════════════════════
-  async function submitVote() {
-    const activities = employeeData.activities || [];
-    const toSubmit = activities.filter(a => !a.hasVoted && selectedMap[a.activityId]);
-    
-    if (toSubmit.length === 0) {
-      closeConfirm();
-      return;
-    }
-
-    const btn = document.getElementById('confirm-submit-btn');
-    UIUtil.setLoading(btn, true);
-
-    const votes = toSubmit.map(act => ({
-      activityId: act.activityId,
-      candidateId: selectedMap[act.activityId]
-    }));
-
-    try {
-      await ApiUtil.post('/employee-vote/submit-batch', { votes });
-
-      // 更新本地狀態
-      toSubmit.forEach(act => {
-        act.hasVoted = true;
-        votedMap[act.activityId] = true;
-        
-        // 模擬增加票數（實際應從後端取得）
-        const candId = selectedMap[act.activityId];
-        const cand = act.candidates.find(c => c.id === candId);
-        if (cand) {
-          cand.votes = (cand.votes || 0) + 1;
-        }
-      });
-
-      // 清除已選擇
-      selectedMap = {};
-
-      closeConfirm();
-      renderHub();
-
-      // 更新 sessionStorage
-      sessionStorage.setItem('employee_data', JSON.stringify(employeeData));
-
-    } catch (error) {
-      alert(error.message || '投票失敗，請重試。');
-    } finally {
-      UIUtil.setLoading(btn, false);
-    }
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // 登出
-  // ═══════════════════════════════════════════════════════════════════════════
-  async function doLogout() {
-    try {
-      await ApiUtil.post('/employee-auth/logout', {});
-    } catch (error) {
-      // 忽略登出錯誤
-    }
-
-    CookieUtil.remove('employee_session');
-    sessionStorage.removeItem('employee_data');
     window.location.href = 'login.html';
   }
 </script>

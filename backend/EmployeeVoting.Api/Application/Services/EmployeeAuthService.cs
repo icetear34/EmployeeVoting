@@ -73,9 +73,18 @@ namespace EmployeeVoting.Api.Application.Services
 
             var token = await _sessionTokenRepository.CreateAsync(session);
 
-            // 5. 取得活動資訊
+            // 5. 取得活動資訊（進行中 或 已投票且結果可查閱）
             var activities = await _employeeVoteService.GetActivitiesForEmployeeAsync(request.EmployeeNo);
-            var allVoted = activities.Count > 0 && activities.All(a => a.HasVoted);
+
+            // 若無任何可顯示的活動，視為登入失敗
+            if (activities.Count == 0)
+            {
+                // 已建立的 session 撤銷，避免殘留
+                await _sessionTokenRepository.RevokeAsync(token);
+                return (null, ErrorCodes.ActivityNotActive, "目前沒有進行中的活動，也沒有可查閱的結果");
+            }
+
+            var allVoted = activities.All(a => a.HasVoted);
 
             return (new EmployeeLoginResponse
             {
