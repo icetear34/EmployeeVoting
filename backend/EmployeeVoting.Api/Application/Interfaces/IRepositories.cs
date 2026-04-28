@@ -15,7 +15,7 @@ namespace EmployeeVoting.Api.Application.Interfaces
         /// <summary>
         /// 分頁查詢（含搜尋、狀態過濾、排序）
         /// </summary>
-        Task<(IEnumerable<VoteActivity> Items, int TotalCount)> GetPagedAsync(ActivityQueryRequest query);
+        Task<(IEnumerable<VoteActivity> Items, int TotalCount)> GetPagedAsync(ActivityQueryRequest query, IEnumerable<Guid>? groupFilter = null);
 
         Task<Guid> CreateAsync(VoteActivity activity);
         Task UpdateAsync(VoteActivity activity);
@@ -101,5 +101,29 @@ namespace EmployeeVoting.Api.Application.Interfaces
         Task<int> GetCountByCandidateIdAsync(Guid candidateId);
         Task CreateAsync(VoteRecord record);
         Task BatchCreateAsync(IEnumerable<VoteRecord> records);
+    }
+
+    /// <summary>
+    /// 活動分區 Repository 介面
+    /// </summary>
+    public interface IActivityGroupRepository
+    {
+        Task<IEnumerable<ActivityGroup>> GetAllAsync();
+        Task<ActivityGroup?> GetByIdAsync(Guid id);
+        Task<Guid> CreateAsync(ActivityGroup group);
+        Task UpdateAsync(ActivityGroup group);
+        Task SoftDeleteAsync(Guid id);
+        Task<IEnumerable<Guid>> GetGroupIdsByAdminUserIdAsync(Guid adminUserId);
+    }
+
+    /// <summary>
+    /// 管理者分區對應 Repository 介面
+    /// </summary>
+    public interface IAdminUserGroupRepository
+    {
+        Task<IEnumerable<AdminUserGroup>> GetByAdminUserIdAsync(Guid adminUserId);
+        Task<IEnumerable<AdminUserGroup>> GetByGroupIdAsync(Guid groupId);
+        Task SetGroupsForAdminAsync(Guid adminUserId, IEnumerable<Guid> groupIds);
+        Task RemoveAllByGroupIdAsync(Guid groupId);
     }
 }

@@ -140,6 +140,40 @@ namespace EmployeeVoting.Api.Infrastructure.Persistence
                 CREATE INDEX IF NOT EXISTS IX_CaptchaSession_CaptchaId ON CaptchaSession(CaptchaId);
                 CREATE INDEX IF NOT EXISTS IX_CaptchaSession_ExpireAt ON CaptchaSession(ExpireAt);
             ");
+
+            // 建立活動分區資料表
+            connection.Execute(@"
+                CREATE TABLE IF NOT EXISTS ActivityGroup (
+                    Id TEXT PRIMARY KEY,
+                    Name TEXT NOT NULL UNIQUE,
+                    Description TEXT NOT NULL DEFAULT '',
+                    CreatedAt TEXT NOT NULL,
+                    CreatedBy TEXT NOT NULL,
+                    IsDeleted INTEGER NOT NULL DEFAULT 0
+                );
+            ");
+
+            // 建立管理員-分區關聯資料表
+            connection.Execute(@"
+                CREATE TABLE IF NOT EXISTS AdminUserGroup (
+                    Id TEXT PRIMARY KEY,
+                    AdminUserId TEXT NOT NULL,
+                    ActivityGroupId TEXT NOT NULL,
+                    CreatedAt TEXT NOT NULL,
+                    FOREIGN KEY (AdminUserId) REFERENCES AdminUser(Id),
+                    FOREIGN KEY (ActivityGroupId) REFERENCES ActivityGroup(Id),
+                    UNIQUE(AdminUserId, ActivityGroupId)
+                );
+                CREATE INDEX IF NOT EXISTS IX_AdminUserGroup_AdminUserId ON AdminUserGroup(AdminUserId);
+                CREATE INDEX IF NOT EXISTS IX_AdminUserGroup_ActivityGroupId ON AdminUserGroup(ActivityGroupId);
+            ");
+
+            // 補 VoteActivity.ActivityGroupId 欄位（舊資料庫相容）
+            try
+            {
+                connection.Execute("ALTER TABLE VoteActivity ADD COLUMN ActivityGroupId TEXT");
+            }
+            catch { /* 欄位已存在，忽略 */ }
         }
 
         /// <summary>
@@ -158,14 +192,15 @@ namespace EmployeeVoting.Api.Infrastructure.Persistence
             {
                 var now = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss");
                 connection.Execute(@"
-                    INSERT INTO AdminUser (Id, Account, Password, DisplayName, IsEnabled, CreatedAt, UpdatedAt)
-                    VALUES (@Id, @Account, @Password, @DisplayName, @IsEnabled, @CreatedAt, @UpdatedAt)",
+                    INSERT INTO AdminUser (Id, Account, Password, DisplayName, Role, IsEnabled, CreatedAt, UpdatedAt)
+                    VALUES (@Id, @Account, @Password, @DisplayName, @Role, @IsEnabled, @CreatedAt, @UpdatedAt)",
                     new
                     {
                         Id = Guid.NewGuid().ToString(),
                         Account = "admin",
-                        Password = "Admin@123", // 預設密碼，符合密碼規範
+                        Password = "Admin@123",
                         DisplayName = "系統管理員",
+                        Role = "super_admin",
                         IsEnabled = 1,
                         CreatedAt = now,
                         UpdatedAt = now

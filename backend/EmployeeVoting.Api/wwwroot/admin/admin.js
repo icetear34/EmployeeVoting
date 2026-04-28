@@ -494,9 +494,12 @@ const ValidationUtil = {
 
 
 const AdminPage = {
+    currentUser: null,
+
     async requireAuth() {
         try {
-            await ApiUtil.get('/admin-auth/me');
+            const me = await ApiUtil.get('/admin-auth/me');
+            AdminPage.currentUser = me;
             return true;
         } catch (error) {
             sessionStorage.removeItem('admin_data');
@@ -504,6 +507,10 @@ const AdminPage = {
             window.location.href = 'login.html';
             return false;
         }
+    },
+
+    isSuperAdmin() {
+        return AdminPage.currentUser?.role === 'super_admin';
     },
 
     async logout() {

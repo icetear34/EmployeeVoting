@@ -17,6 +17,7 @@
     <div class="nav-switch">
       <a href="activities.html" class="nav-switch-btn active">活動管理</a>
       <a href="users.html" class="nav-switch-btn">帳號管理</a>
+      <a href="groups.html" class="nav-switch-btn" id="nav-groups" style="display:none">分區管理</a>
     </div>
     <button class="topbar-action" onclick="doLogout()">登出</button>
   </nav>
@@ -57,6 +58,7 @@
               <th onclick="toggleSort('startTime')" style="cursor:pointer">開始時間 <span id="sort-startTime"></span></th>
               <th onclick="toggleSort('endTime')" style="cursor:pointer">結束時間 <span id="sort-endTime"></span></th>
               <th>狀態</th>
+              <th id="th-group" style="display:none">分區</th>
               <th style="width:160px">操作</th>
             </tr>
           </thead>
@@ -237,6 +239,11 @@
   document.addEventListener('DOMContentLoaded', async () => {
     const ok = await AdminPage.requireAuth();
     if (!ok) return;
+    // super_admin 顯示分區欄
+    if (AdminPage.isSuperAdmin()) {
+      document.getElementById('th-group').style.display = '';
+      document.getElementById('nav-groups').style.display = '';
+    }
     initTabs();
     initResultViewToggle();
     await loadActivities();
@@ -309,12 +316,16 @@
     tbody.innerHTML = activities.map(act => {
       const status = UIUtil.getActivityStatus(act.startTime, act.endTime);
       const actName = act.name || act.activityName || '';
+      const groupCell = AdminPage.isSuperAdmin()
+        ? `<td>${act.activityGroupName ? `<span class="badge badge-info">${UIUtil.escapeHtml(act.activityGroupName)}</span>` : '<span style="color:var(--ink-3)">-</span>'}</td>`
+        : '';
       return `
         <tr>
           <td>${UIUtil.escapeHtml(actName)}</td>
           <td>${UIUtil.formatDateTime(act.startTime)}</td>
           <td>${UIUtil.formatDateTime(act.endTime)}</td>
           <td><span class="badge ${status.className}">${status.text}</span></td>
+          ${groupCell}
           <td>
             <div style="display:flex;gap:6px;align-items:center;flex-wrap:nowrap">
               <button class="btn btn-outline btn-sm" onclick="openActivityModal('${act.id}')">檢視</button>

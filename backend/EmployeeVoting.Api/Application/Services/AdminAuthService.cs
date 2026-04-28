@@ -111,7 +111,8 @@ namespace EmployeeVoting.Api.Application.Services
             return (new AdminMeResponse
             {
                 Account = admin.Account,
-                DisplayName = admin.DisplayName
+                DisplayName = admin.DisplayName,
+                Role = admin.Role
             }, null);
         }
 

@@ -7,6 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../shared/styles.css">
   <link rel="stylesheet" href="admin.css">
+  <link rel="stylesheet" href="activities.css">
 </head>
 <body>
 
@@ -14,8 +15,9 @@
   <nav class="topbar">
     <span class="topbar-logo">VoteSystem</span>
     <div class="nav-switch">
-      <a href="activities.html" class="nav-switch-item active">活動管理</a>
-      <a href="users.html" class="nav-switch-item">帳號管理</a>
+      <a href="activities.html" class="nav-switch-btn active">活動管理</a>
+      <a href="users.html" class="nav-switch-btn">帳號管理</a>
+      <a href="groups.html" class="nav-switch-btn" id="nav-groups" style="display:none">分區管理</a>
     </div>
     <button class="topbar-action" onclick="doLogout()">登出</button>
   </nav>
@@ -24,10 +26,10 @@
     <!-- 搜尋區塊 -->
     <div class="card" style="margin-bottom:20px">
       <div class="card-body" style="padding:16px">
-        <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+        <div class="activity-search-row" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
           <div class="form-group" style="margin:0;flex:1;min-width:200px">
-            <label>活動名稱/代碼</label>
-            <input type="text" id="search-keyword" class="form-input" placeholder="搜尋活動名稱或代碼" onkeyup="handleSearchKeyup(event)">
+            <label>活動名稱</label>
+            <input type="text" id="search-keyword" class="form-input" placeholder="搜尋活動名稱" onkeyup="handleSearchKeyup(event)">
           </div>
           <div class="form-group" style="margin:0">
             <label>狀態</label>
@@ -38,8 +40,10 @@
               <option value="ended">已結束</option>
             </select>
           </div>
-          <button class="btn btn-outline" onclick="searchActivities()">搜尋</button>
-          <button class="btn" onclick="openActivityModal()">+ 新增活動</button>
+          <button class="btn btn-outline btn-sm btn-icon" onclick="searchActivities()" title="搜尋" style="width:44px;padding:0">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </button>
+          <button class="btn btn-sm" onclick="openActivityModal()" style="white-space:nowrap;padding-left:20px;padding-right:20px">+ 新增活動</button>
         </div>
       </div>
     </div>
@@ -50,12 +54,12 @@
         <table class="table">
           <thead>
             <tr>
-              <th>活動代碼</th>
-              <th>活動名稱</th>
-              <th>開始時間</th>
-              <th>結束時間</th>
+              <th onclick="toggleSort('name')" style="cursor:pointer">活動名稱 <span id="sort-name"></span></th>
+              <th onclick="toggleSort('startTime')" style="cursor:pointer">開始時間 <span id="sort-startTime"></span></th>
+              <th onclick="toggleSort('endTime')" style="cursor:pointer">結束時間 <span id="sort-endTime"></span></th>
               <th>狀態</th>
-              <th style="width:120px">操作</th>
+              <th id="th-group" style="display:none">分區</th>
+              <th style="width:160px">操作</th>
             </tr>
           </thead>
           <tbody id="activity-table-body">
@@ -83,10 +87,12 @@
     </div>
 
     <div class="modal-tabs" id="modal-tabs">
-      <button class="modal-tab active" data-tab="basic">基本資料</button>
-      <button class="modal-tab" data-tab="voters">可投票名單</button>
-      <button class="modal-tab" data-tab="candidates">候選人管理</button>
-      <button class="modal-tab" data-tab="results">開票頁面</button>
+      <div class="modal-tab-pills">
+        <button class="modal-tab active" data-tab="basic">基本資料</button>
+        <button class="modal-tab" data-tab="voters">可投票名單</button>
+        <button class="modal-tab" data-tab="candidates">候選人管理</button>
+        <button class="modal-tab" data-tab="results">開票頁面</button>
+      </div>
     </div>
 
     <div class="modal-body">
@@ -102,18 +108,16 @@
           <tr>
             <th>說明</th>
             <td><textarea id="activity-desc" rows="3" placeholder="請輸入活動說明（可選）"></textarea></td>
-          </tr>
+          </tr>         
           <tr>
-            <th>活動代號</th>
-            <td><input type="text" id="activity-code" class="form-input" placeholder="例：VOTE-20260416-0001" style="color:var(--ink-3)"></td>
-          </tr>
-          <tr>
-            <th>開始時間</th>
-            <td><input type="datetime-local" id="activity-start" class="form-input"></td>
-          </tr>
-          <tr>
-            <th>結束時間</th>
-            <td><input type="datetime-local" id="activity-end" class="form-input"></td>
+            <th>活動起訖</th>
+            <td>
+              <div style="display:flex;gap:10px;align-items:center">
+                <input type="datetime-local" id="activity-start" class="form-input" style="flex:1">
+                <span style="color:var(--ink-3);white-space:nowrap;font-size:13px">至</span>
+                <input type="datetime-local" id="activity-end" class="form-input" style="flex:1">
+              </div>
+            </td>
           </tr>
           <tr>
             <th>狀態</th>
@@ -127,30 +131,21 @@
             <th>建立人</th>
             <td id="detail-created-by">-</td>
           </tr>
-        </table>
-
-        <div class="result-view-settings" style="margin-top:20px">
-          <div style="font-weight:500;margin-bottom:12px">結果查閱設定</div>
-          <table class="detail-table">
-            <tr>
-              <th>允許查閱</th>
-              <td>
-                <label style="display:flex;align-items:center;gap:8px">
+          <tr>
+            <th>允許查閱</th>
+            <td>
+              <div style="display:flex;gap:10px;align-items:center">
+                <label class="switch-toggle">
                   <input type="checkbox" id="is-result-viewable">
-                  <span>允許投票人查閱投票結果</span>
+                  <span class="switch-thumb"></span>
                 </label>
-              </td>
-            </tr>
-            <tr id="result-view-start-row" style="display:none">
-              <th>查閱開始時間</th>
-              <td><input type="datetime-local" id="result-view-start" class="form-input"></td>
-            </tr>
-            <tr id="result-view-end-row" style="display:none">
-              <th>查閱結束時間</th>
-              <td><input type="datetime-local" id="result-view-end" class="form-input"></td>
-            </tr>
-          </table>
-        </div>
+                <input type="datetime-local" id="result-view-start" class="form-input" style="flex:1;visibility:hidden">
+                <span id="result-view-sep" style="color:var(--ink-3);white-space:nowrap;font-size:13px;visibility:hidden">至</span>
+                <input type="datetime-local" id="result-view-end" class="form-input" style="flex:1;visibility:hidden">
+              </div>
+            </td>
+          </tr>
+        </table>
       </div>
 
       <!-- 投票人員 Tab -->
@@ -167,16 +162,16 @@
         <div id="voter-list-wrap" style="max-height:300px;overflow-y:auto">
           <table class="table table-sm" id="voter-table">
             <thead>
-              <tr>
-                <th>員工編號</th>
-                <th>姓名</th>
-                <th>部門</th>
-                <th>生日</th>
-                <th style="width:60px">操作</th>
-              </tr>
+                <tr>
+                    <th>員工編號</th>
+                    <th>姓名</th>
+                    <th>部門</th>
+                    <th>生日</th>
+                    <th style="width:60px">操作</th>
+                </tr>
             </thead>
             <tbody id="voter-table-body">
-              <tr><td colspan="5" style="text-align:center;color:var(--ink-3)">尚無投票人員</td></tr>
+              <tr><td colspan="4" style="text-align:center;color:var(--ink-3)">尚無投票人員</td></tr>
             </tbody>
           </table>
         </div>
@@ -242,23 +237,17 @@
   // 頁面初始化
   // ═══════════════════════════════════════════════════════════════════════════
   document.addEventListener('DOMContentLoaded', async () => {
-    await checkAdminSession();
+    const ok = await AdminPage.requireAuth();
+    if (!ok) return;
+    // super_admin 顯示分區欄
+    if (AdminPage.isSuperAdmin()) {
+      document.getElementById('th-group').style.display = '';
+      document.getElementById('nav-groups').style.display = '';
+    }
     initTabs();
     initResultViewToggle();
     await loadActivities();
   });
-
-  async function checkAdminSession() {
-    if (!CookieUtil.get('admin_logged_in')) {
-      window.location.href = 'login.html';
-      return;
-    }
-    try {
-      await ApiUtil.get('/admin-auth/me');
-    } catch (error) {
-      window.location.href = 'login.html';
-    }
-  }
 
   function initTabs() {
     const tabs = document.querySelectorAll('.modal-tab');
@@ -269,44 +258,50 @@
 
   function initResultViewToggle() {
     const checkbox = document.getElementById('is-result-viewable');
-    const startRow = document.getElementById('result-view-start-row');
-    const endRow = document.getElementById('result-view-end-row');
-    checkbox.onchange = () => {
-      const show = checkbox.checked ? 'table-row' : 'none';
-      startRow.style.display = show;
-      endRow.style.display = show;
-    };
+    checkbox.onchange = () => toggleResultViewInputs(checkbox.checked);
+  }
+
+  function toggleResultViewInputs(show) {
+    const v = show ? 'visible' : 'hidden';
+    document.getElementById('result-view-start').style.visibility = v;
+    document.getElementById('result-view-end').style.visibility   = v;
+    document.getElementById('result-view-sep').style.visibility   = v;
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
   // 活動列表
   // ═══════════════════════════════════════════════════════════════════════════
+  let sortBy  = 'createdAt';
+  let sortDir = 'desc';
+
   async function loadActivities() {
     const keyword = document.getElementById('search-keyword').value.trim();
-    const status = document.getElementById('search-status').value;
+    const status  = document.getElementById('search-status').value;
 
     const tbody = document.getElementById('activity-table-body');
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--ink-3)">載入中...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--ink-3)">載入中...</td></tr>';
 
     try {
-      const params = new URLSearchParams({
-        page: currentPage,
-        pageSize: pageSize
-      });
-      if (keyword) params.append('keyword', keyword);
-      if (status) params.append('status', status);
+      const params = new URLSearchParams();
+      if (keyword)  params.set('keyword',  keyword);
+      if (status)   params.set('status',   status);
+      params.set('sortBy',   sortBy);
+      params.set('sortDir',  sortDir);
+      params.set('page',     currentPage);
+      params.set('pageSize', pageSize);
 
+      // 後端回傳 PagedResult<VoteActivityListItem>
       const response = await ApiUtil.get(`/admin/activities?${params.toString()}`);
-      
-      activities = response.items || response.data || [];
-      totalPages = response.totalPages || 1;
-      currentPage = response.page || 1;
+
+      activities  = response.items  || [];
+      totalPages  = response.totalPages ?? 1;
+      currentPage = response.page       ?? 1;
 
       renderActivityTable();
       renderPagination();
 
     } catch (error) {
-      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--danger)">${error.message || '載入失敗'}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--danger)">${error.message || '載入失敗'}</td></tr>`;
     }
   }
 
@@ -314,22 +309,28 @@
     const tbody = document.getElementById('activity-table-body');
     
     if (activities.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--ink-3)">尚無活動資料</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--ink-3)">尚無活動資料</td></tr>';
       return;
     }
 
     tbody.innerHTML = activities.map(act => {
       const status = UIUtil.getActivityStatus(act.startTime, act.endTime);
+      const actName = act.name || act.activityName || '';
+      const groupCell = AdminPage.isSuperAdmin()
+        ? `<td>${act.activityGroupName ? `<span class="badge badge-info">${UIUtil.escapeHtml(act.activityGroupName)}</span>` : '<span style="color:var(--ink-3)">-</span>'}</td>`
+        : '';
       return `
         <tr>
-          <td><code>${UIUtil.escapeHtml(act.activityCode || act.code)}</code></td>
-          <td>${UIUtil.escapeHtml(act.activityName || act.name)}</td>
+          <td>${UIUtil.escapeHtml(actName)}</td>
           <td>${UIUtil.formatDateTime(act.startTime)}</td>
           <td>${UIUtil.formatDateTime(act.endTime)}</td>
           <td><span class="badge ${status.className}">${status.text}</span></td>
+          ${groupCell}
           <td>
-            <button class="btn btn-outline btn-sm" onclick="openActivityModal('${act.id}')">檢視</button>
-            <button class="btn btn-outline btn-sm btn-danger" onclick="openDeleteModal('${act.id}', '${UIUtil.escapeHtml(act.activityName || act.name)}')">刪除</button>
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:nowrap">
+              <button class="btn btn-outline btn-sm" onclick="openActivityModal('${act.id}')">檢視</button>
+              <button class="btn btn-outline btn-sm btn-danger" onclick="openDeleteModal('${act.id}', '${UIUtil.escapeHtml(actName)}')">刪除</button>
+            </div>
           </td>
         </tr>
       `;
@@ -337,8 +338,7 @@
   }
 
   function renderPagination() {
-    const container = document.getElementById('pagination-container');
-    container.innerHTML = PaginationUtil.render(currentPage, totalPages, 'goToPage');
+    PaginationUtil.render('pagination-container', currentPage, totalPages, 'goToPage');
   }
 
   function goToPage(page) {
@@ -353,9 +353,23 @@
   }
 
   function handleSearchKeyup(event) {
-    if (event.key === 'Enter') {
-      searchActivities();
+    if (event.key === 'Enter') searchActivities();
+  }
+
+  function toggleSort(col) {
+    if (sortBy === col) {
+      sortDir = sortDir === 'desc' ? 'asc' : 'desc';
+    } else {
+      sortBy  = col;
+      sortDir = 'desc';
     }
+    // 更新排序指示符
+    ['name', 'startTime', 'endTime'].forEach(c => {
+      const el = document.getElementById(`sort-${c}`);
+      if (el) el.textContent = c === sortBy ? (sortDir === 'asc' ? '▲' : '▼') : '';
+    });
+    currentPage = 1;
+    loadActivities();
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -370,14 +384,12 @@
     document.getElementById('activity-id').value = '';
     document.getElementById('activity-name').value = '';
     document.getElementById('activity-desc').value = '';
-    document.getElementById('activity-code').value = '';
     document.getElementById('activity-start').value = '';
     document.getElementById('activity-end').value = '';
     document.getElementById('is-result-viewable').checked = false;
     document.getElementById('result-view-start').value = '';
     document.getElementById('result-view-end').value = '';
-    document.getElementById('result-view-start-row').style.display = 'none';
-    document.getElementById('result-view-end-row').style.display = 'none';
+    toggleResultViewInputs(false);
     document.getElementById('detail-created-at').textContent = '-';
     document.getElementById('detail-created-by').textContent = '-';
 
@@ -397,7 +409,7 @@
         editingActivity = activity;
 
         // 更新標題和狀態徽章
-        const actName = activity.activityName || activity.name || '活動詳情';
+        const actName = activity.name || activity.activityName || '活動詳情';
         modalTitle.textContent = actName;
         
         const status = UIUtil.getActivityStatus(activity.startTime, activity.endTime);
@@ -410,9 +422,8 @@
 
         // 填入基本資料
         document.getElementById('activity-id').value = activity.id;
-        document.getElementById('activity-name').value = activity.activityName || activity.name || '';
+        document.getElementById('activity-name').value = activity.name || activity.activityName || '';
         document.getElementById('activity-desc').value = activity.description || '';
-        document.getElementById('activity-code').value = activity.activityCode || activity.code || '';
         document.getElementById('activity-start').value = formatDateTimeLocal(activity.startTime);
         document.getElementById('activity-end').value = formatDateTimeLocal(activity.endTime);
 
@@ -425,17 +436,12 @@
         // 結果查閱設定
         const isViewable = activity.isResultViewable || false;
         document.getElementById('is-result-viewable').checked = isViewable;
-        if (isViewable) {
-          document.getElementById('result-view-start-row').style.display = 'table-row';
-          document.getElementById('result-view-end-row').style.display = 'table-row';
-        }
+        toggleResultViewInputs(isViewable);
         
-        if (activity.resultViewStartTime) {
-          document.getElementById('result-view-start').value = formatDateTimeLocal(activity.resultViewStartTime);
-        }
-        if (activity.resultViewEndTime) {
-          document.getElementById('result-view-end').value = formatDateTimeLocal(activity.resultViewEndTime);
-        }
+        document.getElementById('result-view-start').value =
+          isViewable && activity.resultViewStartTime ? formatDateTimeLocal(activity.resultViewStartTime) : '';
+        document.getElementById('result-view-end').value =
+          isViewable && activity.resultViewEndTime ? formatDateTimeLocal(activity.resultViewEndTime) : '';
 
         // 載入投票人員和候選人
         voterList = activity.eligibleVoters || [];
@@ -561,55 +567,29 @@
     const file = event.target.files[0];
     if (!file) return;
 
-    const activityId = editingActivity?.id;
-    if (!activityId) {
-      alert('請先儲存活動後再匯入名單');
-      event.target.value = '';
-      return;
-    }
-
     const resultEl = document.getElementById('voter-import-result');
-    resultEl.innerHTML = '<span style="color:var(--ink-3)">匯入中...</span>';
+    resultEl.innerHTML = '<span style="color:var(--ink-3)">解析中...</span>';
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
+      // 只做解析，回傳 JSON 暫存在前端 voterList，儲存活動時一起送出
+      const parsed = await ActivityApi.importVoters(file);
 
-      const response = await fetch(API_BASE_URL + `/admin/activities/${activityId}/voters/import`, {
-        method: 'POST',
-        credentials: 'include',
-        body: formData
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.message || '匯入失敗');
-      }
-
-      // result 為陣列：[{ employeeNo, name, department, birthDate }, ...]
-      const newVoters = Array.isArray(result) ? result : (result.voters || []);
       const existingNos = new Set(voterList.map(v => v.employeeNo));
       let addedCount = 0;
 
-      newVoters.forEach(v => {
-        const no = v.EmployeeNo || v.employeeNo;
-        if (no && !existingNos.has(no)) {
-          voterList.push({
-            employeeNo:  no,
-            name:        v.Name       || v.name       || '',
-            department:  v.Department || v.department || '',
-            birthDate:   v.BirthDate  || v.birthDate  || ''
-          });
-          existingNos.add(no);
+      parsed.forEach(v => {
+        if (v.employeeNo && !existingNos.has(v.employeeNo)) {
+          voterList.push(v);
+          existingNos.add(v.employeeNo);
           addedCount++;
         }
       });
 
-      const skipped = newVoters.length - addedCount;
+      const skipped = parsed.length - addedCount;
       resultEl.innerHTML =
-        `<span style="color:var(--success)">✓ 成功新增 ${addedCount} 位投票人</span>` +
-        (skipped > 0 ? `<span style="color:var(--ink-3);margin-left:8px">（${skipped} 筆工號重複已略過）</span>` : '');
+        `<span style="color:var(--success)">✓ 解析完成，新增 ${addedCount} 位投票人</span>` +
+        (skipped > 0 ? `<span style="color:var(--ink-3);margin-left:8px">（${skipped} 筆工號重複已略過）</span>` : '') +
+        `<span style="color:var(--ink-3);margin-left:8px">— 請儲存活動以套用變更</span>`;
 
       renderVoterTable();
 
@@ -622,29 +602,12 @@
 
   async function downloadVoterTemplate() {
     try {
-      const response = await fetch(API_BASE_URL + '/admin/activities/voters/template', {
-        method: 'GET',
-        credentials: 'include'
-      });
-
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(err.message || `下載失敗（HTTP ${response.status}）`);
-      }
-
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'voters_template.csv';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      await ActivityApi.downloadVoterTemplate();
     } catch (error) {
       alert('下載範本失敗：' + error.message);
     }
   }
+
 
   // ═══════════════════════════════════════════════════════════════════════════
   // 候選人管理
@@ -716,9 +679,7 @@
 
       const response = await fetch('/api/admin/activities/candidates/upload-image', {
         method: 'POST',
-        headers: {
-          'Authorization': 'Bearer ' + CookieUtil.get('admin_session')
-        },
+        credentials: 'include',
         body: formData
       });
 
@@ -748,7 +709,7 @@
       return;
     }
 
-    const totalVotes = activity.candidates.reduce((sum, c) => sum + (c.votes || 0), 0);
+    const totalVotes = activity.candidates.reduce((sum, c) => sum + (c.voteCount || 0), 0);
     const totalVoters = activity.eligibleVoters?.length || 0;
     const turnout = totalVoters > 0 ? Math.round(totalVotes / totalVoters * 100) : 0;
 
@@ -770,20 +731,25 @@
       </div>
     `;
 
-    // 圓餅圖佔位
-    html += '<div class="chart-wrap"><canvas id="result-chart"></canvas></div>';
+    // 圓餅圖 + 右側圖例（並排）
+    html += `
+      <div style="display:flex;align-items:center;gap:32px;flex-wrap:wrap;margin-top:16px">
+        <div class="chart-wrap" style="flex:0 0 auto"><canvas id="result-chart"></canvas></div>
+        <div id="chart-legend" style="flex:1;min-width:160px;display:flex;flex-direction:column;gap:8px"></div>
+      </div>
+    `;
 
     // 詳細列表
     html += '<div style="margin-top:20px"><strong>得票明細</strong></div>';
     html += '<table class="table table-sm" style="margin-top:12px"><thead><tr><th>候選人</th><th>得票數</th><th>佔比</th></tr></thead><tbody>';
     
-    const sortedCandidates = [...activity.candidates].sort((a, b) => (b.votes || 0) - (a.votes || 0));
+    const sortedCandidates = [...activity.candidates].sort((a, b) => (b.voteCount || 0) - (a.voteCount || 0));
     sortedCandidates.forEach(cand => {
-      const pct = totalVotes > 0 ? Math.round((cand.votes || 0) / totalVotes * 100) : 0;
+      const pct = totalVotes > 0 ? Math.round((cand.voteCount || 0) / totalVotes * 100) : 0;
       html += `
         <tr>
           <td>${UIUtil.escapeHtml(cand.name)}</td>
-          <td>${cand.votes || 0}</td>
+          <td>${cand.voteCount || 0}</td>
           <td>${pct}%</td>
         </tr>
       `;
@@ -801,49 +767,112 @@
     if (!canvas || !canvas.getContext) return;
 
     const ctx = canvas.getContext('2d');
-    const size = Math.min(canvas.parentElement.clientWidth, 280);
+    const size = Math.min(canvas.parentElement.clientWidth, 260);
     canvas.width = size;
     canvas.height = size;
 
     const centerX = size / 2;
     const centerY = size / 2;
-    const radius = size / 2 - 20;
+    const outerRadius = size / 2 - 10;
+    const innerRadius = outerRadius * 0.48; // 甜甜圈內徑
+
+    const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
 
     if (totalVotes === 0) {
       ctx.fillStyle = '#e5e7eb';
       ctx.beginPath();
-      ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+      ctx.arc(centerX, centerY, outerRadius, 0, 2 * Math.PI);
       ctx.fill();
-
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, innerRadius, 0, 2 * Math.PI);
+      ctx.fill();
       ctx.fillStyle = '#9ca3af';
-      ctx.font = '14px sans-serif';
+      ctx.font = `${size * 0.055}px sans-serif`;
       ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
       ctx.fillText('尚無投票', centerX, centerY);
+      renderChartLegend(candidates, colors, totalVotes);
       return;
     }
 
-    const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
     let startAngle = -Math.PI / 2;
 
+    // 繪製各扇形
     candidates.forEach((cand, idx) => {
-      const pct = (cand.votes || 0) / totalVotes;
+      const pct = (cand.voteCount || 0) / totalVotes;
       const endAngle = startAngle + pct * 2 * Math.PI;
+      const color = colors[idx % colors.length];
 
-      ctx.fillStyle = colors[idx % colors.length];
+      // 扇形
+      ctx.fillStyle = color;
       ctx.beginPath();
       ctx.moveTo(centerX, centerY);
-      ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+      ctx.arc(centerX, centerY, outerRadius, startAngle, endAngle);
       ctx.closePath();
       ctx.fill();
+
+      // 白色分隔線
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY);
+      ctx.arc(centerX, centerY, outerRadius, startAngle, endAngle);
+      ctx.closePath();
+      ctx.stroke();
+
+      // 扇形中央標示佔比（佔比 > 5% 才顯示，避免太小擠在一起）
+      if (pct >= 0.05) {
+        const midAngle = startAngle + (endAngle - startAngle) / 2;
+        const labelR = (outerRadius + innerRadius) / 2;
+        const lx = centerX + labelR * Math.cos(midAngle);
+        const ly = centerY + labelR * Math.sin(midAngle);
+
+        ctx.fillStyle = '#fff';
+        ctx.font = `bold ${Math.max(11, size * 0.05)}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`${Math.round(pct * 100)}%`, lx, ly);
+      }
 
       startAngle = endAngle;
     });
 
-    // 中心白圓（甜甜圈效果）
+    // 中心白圓（甜甜圈效果）＋ 總票數
     ctx.fillStyle = '#fff';
     ctx.beginPath();
-    ctx.arc(centerX, centerY, radius * 0.5, 0, 2 * Math.PI);
+    ctx.arc(centerX, centerY, innerRadius, 0, 2 * Math.PI);
     ctx.fill();
+
+    ctx.fillStyle = '#374151';
+    ctx.font = `bold ${Math.max(14, size * 0.07)}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(totalVotes, centerX, centerY - size * 0.04);
+
+    ctx.fillStyle = '#9ca3af';
+    ctx.font = `${Math.max(10, size * 0.045)}px sans-serif`;
+    ctx.fillText('總票數', centerX, centerY + size * 0.05);
+
+    renderChartLegend(candidates, colors, totalVotes);
+  }
+
+  function renderChartLegend(candidates, colors, totalVotes) {
+    const legend = document.getElementById('chart-legend');
+    if (!legend) return;
+
+    legend.innerHTML = candidates.map((cand, idx) => {
+      const pct = totalVotes > 0 ? Math.round((cand.voteCount || 0) / totalVotes * 100) : 0;
+      const color = colors[idx % colors.length];
+      return `
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="flex:0 0 14px;height:14px;border-radius:3px;background:${color};display:inline-block"></span>
+          <span style="flex:1;font-size:13px;color:var(--ink-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${UIUtil.escapeHtml(cand.name)}">${UIUtil.escapeHtml(cand.name)}</span>
+          <span style="font-size:13px;font-weight:600;color:var(--ink-1);white-space:nowrap">${cand.voteCount || 0} 票</span>
+          <span style="font-size:12px;color:var(--ink-3);white-space:nowrap;min-width:38px;text-align:right">${pct}%</span>
+        </div>
+      `;
+    }).join('');
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -1025,19 +1054,6 @@
     }
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // 登出
-  // ═══════════════════════════════════════════════════════════════════════════
-  async function doLogout() {
-    try {
-      await ApiUtil.post('/admin-auth/logout', {});
-    } catch (error) {
-      // 忽略
-    }
-    CookieUtil.remove('admin_session');
-    sessionStorage.removeItem('admin_data');
-    window.location.href = 'login.html';
-  }
 </script>
 
 </body>

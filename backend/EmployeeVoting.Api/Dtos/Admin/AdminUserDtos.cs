@@ -12,6 +12,8 @@ namespace EmployeeVoting.Api.Dtos.Admin
         public bool IsEnabled { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
+        /// <summary>所屬分區列表（僅 super_admin 操作時回傳）</summary>
+        public List<ActivityGroupResponse> Groups { get; set; } = new();
     }
 
     /// <summary>

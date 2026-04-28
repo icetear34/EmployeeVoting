@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>分區管理 - 員工投票系統</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../shared/styles.css">
+  <link rel="stylesheet" href="admin.css">
+  <link rel="stylesheet" href="activities.css">
+</head>
+<body>
+
+<div class="screen active">
+  <nav class="topbar">
+    <span class="topbar-logo">VoteSystem</span>
+    <div class="nav-switch">
+      <a href="activities.html" class="nav-switch-item">活動管理</a>
+      <a href="users.html" class="nav-switch-item">帳號管理</a>
+      <a href="groups.html" class="nav-switch-item active">分區管理</a>
+    </div>
+    <button class="topbar-action" onclick="doLogout()">登出</button>
+  </nav>
+
+  <div class="container">
+    <!-- 操作區 -->
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-body" style="padding:16px">
+        <div class="activity-search-row" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+          <div class="form-group" style="margin:0;flex:1;min-width:200px">
+            <label>分區名稱</label>
+            <input type="text" id="search-keyword" class="form-input" placeholder="搜尋分區名稱" onkeyup="handleSearchKeyup(event)">
+          </div>
+          <button class="btn btn-outline btn-sm btn-icon" onclick="searchGroups()" title="搜尋" style="width:44px;padding:0">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </button>
+          <button class="btn btn-sm" onclick="openGroupModal()" style="white-space:nowrap;padding-left:20px;padding-right:20px">+ 新增分區</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 分區列表 -->
+    <div class="card">
+      <div class="card-body" style="padding:0">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>分區名稱</th>
+              <th>說明</th>
+              <th>管理帳號數</th>
+              <th>活動數</th>
+              <th>建立時間</th>
+              <th style="width:150px">操作</th>
+            </tr>
+          </thead>
+          <tbody id="group-table-body">
+            <tr><td colspan="6" style="text-align:center;padding:40px;color:var(--ink-3)">載入中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="pagination-container" class="pagination-container"></div>
+  </div>
+</div>
+
+<!-- 分區 Modal -->
+<div id="group-modal" class="modal-overlay">
+  <div class="modal" style="max-width:540px">
+    <div class="modal-header">
+      <span class="modal-title" id="group-modal-title">新增分區</span>
+      <button class="modal-close" onclick="closeGroupModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="group-id">
+      <div class="form-group">
+        <label>分區名稱 <span style="color:var(--danger)">*</span></label>
+        <input type="text" id="group-name" class="form-input" placeholder="請輸入分區名稱">
+      </div>
+      <div class="form-group">
+        <label>說明</label>
+        <textarea id="group-desc" class="form-input" rows="2" placeholder="請輸入說明（可選）"></textarea>
+      </div>
+      <div class="form-group" id="group-members-wrap">
+        <label>成員管理</label>
+        <div id="group-member-list" style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;padding:8px">
+          <div style="color:var(--ink-3);text-align:center;padding:20px">載入中...</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer" style="display:flex;gap:8px;justify-content:flex-end">
+      <button type="button" class="btn btn-outline" onclick="closeGroupModal()">取消</button>
+      <button type="button" class="btn" onclick="saveGroup()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 刪除確認 Modal -->
+<div id="delete-modal" class="modal-overlay">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-title">確認刪除</div>
+    <div class="modal-body">
+      <p>確定要刪除分區 <strong id="delete-group-name"></strong> 嗎？</p>
+      <p style="font-size:13px;color:var(--ink-3)">刪除後成員關聯將一併移除，活動仍保留但不再屬於此分區。</p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeDeleteModal()">取消</button>
+      <button class="btn btn-danger" id="confirm-delete-btn" onclick="confirmDelete()">確認刪除</button>
+    </div>
+  </div>
+</div>
+
+<script src="../shared/utils.js"></script>
+<script src="admin.js"></script>
+<script>
+  let groups = [];
+  let allAdminUsers = [];
+  let deleteGroupId = null;
+  let filterKeyword = '';
+  let currentPage = 1;
+  const pageSize = 10;
+  let totalPages = 1;
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    const ok = await AdminPage.requireAuth();
+    if (!ok) return;
+    // 只允許 super_admin
+    if (!AdminPage.isSuperAdmin()) {
+      window.location.href = 'activities.html';
+      return;
+    }
+    await loadGroups();
+    await loadAdminUsers();
+  });
+
+  async function loadGroups() {
+    const tbody = document.getElementById('group-table-body');
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--ink-3)">載入中...</td></tr>';
+    try {
+      groups = await ApiUtil.get('/admin/groups');
+      renderGroupTable();
+    } catch (e) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--danger)">${e.message || '載入失敗'}</td></tr>`;
+    }
+  }
+
+  async function loadAdminUsers() {
+    try {
+      const result = await ApiUtil.get('/admin/users?pageSize=200');
+      allAdminUsers = result.items || [];
+    } catch (_) { }
+  }
+
+  function renderGroupTable() {
+    const keyword = filterKeyword.toLowerCase();
+    let filtered = keyword
+      ? groups.filter(g => g.name.toLowerCase().includes(keyword))
+      : groups;
+
+    totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+    currentPage = Math.min(currentPage, totalPages);
+    const paged = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+    const tbody = document.getElementById('group-table-body');
+    if (paged.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--ink-3)">尚無分區資料</td></tr>';
+      PaginationUtil.render('pagination-container', 1, 1, 'goToPage');
+      return;
+    }
+
+    tbody.innerHTML = paged.map(g => `
+      <tr>
+        <td><strong>${UIUtil.escapeHtml(g.name)}</strong></td>
+        <td style="color:var(--ink-3)">${UIUtil.escapeHtml(g.description || '-')}</td>
+        <td><span class="badge">${g.adminCount ?? 0} 人</span></td>
+        <td><span class="badge">${g.activityCount ?? 0} 個</span></td>
+        <td style="color:var(--ink-3)">${UIUtil.formatDateTime(g.createdAt)}</td>
+        <td>
+          <div style="display:flex;gap:6px;align-items:center">
+            <button class="btn btn-outline btn-sm" onclick="openGroupModal('${g.id}')">編輯</button>
+            <button class="btn btn-outline btn-sm btn-danger" onclick="openDeleteModal('${g.id}', '${UIUtil.escapeHtml(g.name)}')">刪除</button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+
+    PaginationUtil.render('pagination-container', currentPage, totalPages, 'goToPage');
+  }
+
+  function searchGroups() {
+    filterKeyword = document.getElementById('search-keyword').value.trim();
+    currentPage = 1;
+    renderGroupTable();
+  }
+
+  function handleSearchKeyup(e) {
+    if (e.key === 'Enter') searchGroups();
+  }
+
+  function goToPage(page) {
+    if (page < 1 || page > totalPages) return;
+    currentPage = page;
+    renderGroupTable();
+  }
+
+  // ─── Group Modal ──────────────────────────────────────────────────────────
+  async function openGroupModal(groupId = null) {
+    document.getElementById('group-id').value = '';
+    document.getElementById('group-name').value = '';
+    document.getElementById('group-desc').value = '';
+
+    if (groupId) {
+      document.getElementById('group-modal-title').textContent = '編輯分區';
+      try {
+        const detail = await ApiUtil.get(`/admin/groups/${groupId}`);
+        document.getElementById('group-id').value = detail.id;
+        document.getElementById('group-name').value = detail.name;
+        document.getElementById('group-desc').value = detail.description || '';
+        renderMemberCheckboxes(detail.members?.map(m => m.id) || []);
+      } catch (e) {
+        showToast(e.message || '載入分區失敗', 'error');
+        return;
+      }
+    } else {
+      document.getElementById('group-modal-title').textContent = '新增分區';
+      renderMemberCheckboxes([]);
+    }
+
+    document.getElementById('group-modal').classList.add('active');
+  }
+
+  function renderMemberCheckboxes(selectedIds) {
+    const container = document.getElementById('group-member-list');
+    if (allAdminUsers.length === 0) {
+      container.innerHTML = '<div style="color:var(--ink-3);text-align:center">無可用帳號</div>';
+      return;
+    }
+    container.innerHTML = allAdminUsers
+      .filter(u => u.role !== 'super_admin')
+      .map(u => `
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;cursor:pointer">
+          <input type="checkbox" name="group-member" value="${u.id}"
+            ${selectedIds.includes(u.id) ? 'checked' : ''}>
+          <span>${UIUtil.escapeHtml(u.name || u.username)}</span>
+          <span style="color:var(--ink-3);font-size:12px">(${UIUtil.escapeHtml(u.username)})</span>
+        </label>
+      `).join('');
+  }
+
+  function closeGroupModal() {
+    document.getElementById('group-modal').classList.remove('active');
+  }
+
+  async function saveGroup() {
+    const id = document.getElementById('group-id').value;
+    const name = document.getElementById('group-name').value.trim();
+    const description = document.getElementById('group-desc').value.trim();
+
+    if (!name) {
+      showToast('分區名稱不可為空', 'error');
+      return;
+    }
+
+    const memberCheckboxes = document.querySelectorAll('input[name="group-member"]:checked');
+    const adminUserIds = Array.from(memberCheckboxes).map(cb => cb.value);
+
+    try {
+      if (id) {
+        // 更新
+        await ApiUtil.put(`/admin/groups/${id}`, { name, description });
+        await ApiUtil.put(`/admin/groups/${id}/members`, { adminUserIds });
+        showToast('分區已更新', 'success');
+      } else {
+        // 新增
+        await ApiUtil.post('/admin/groups', { name, description, adminUserIds });
+        showToast('分區已建立', 'success');
+      }
+      closeGroupModal();
+      await loadGroups();
+    } catch (e) {
+      showToast(e.message || '儲存失敗', 'error');
+    }
+  }
+
+  // ─── Delete Modal ─────────────────────────────────────────────────────────
+  function openDeleteModal(id, name) {
+    deleteGroupId = id;
+    document.getElementById('delete-group-name').textContent = name;
+    document.getElementById('delete-modal').classList.add('active');
+  }
+
+  function closeDeleteModal() {
+    deleteGroupId = null;
+    document.getElementById('delete-modal').classList.remove('active');
+  }
+
+  async function confirmDelete() {
+    if (!deleteGroupId) return;
+    try {
+      await ApiUtil.delete(`/admin/groups/${deleteGroupId}`);
+      showToast('分區已刪除', 'success');
+      closeDeleteModal();
+      await loadGroups();
+    } catch (e) {
+      showToast(e.message || '刪除失敗', 'error');
+    }
+  }
+
+  // ─── Toast ────────────────────────────────────────────────────────────────
+  function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.textContent = message;
+    toast.style.cssText = 'position:fixed;top:24px;right:24px;z-index:9999;padding:12px 20px;border-radius:8px;background:var(--ink-1);color:#fff;font-size:14px;box-shadow:0 4px 16px rgba(0,0,0,.15)';
+    if (type === 'error') toast.style.background = 'var(--danger)';
+    if (type === 'success') toast.style.background = '#22c55e';
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+  }
+
+  function doLogout() { return AdminPage.logout(); }
+</script>
+</body>
+</html>

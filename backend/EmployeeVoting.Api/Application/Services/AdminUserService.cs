@@ -11,10 +11,17 @@ namespace EmployeeVoting.Api.Application.Services
     public class AdminUserService : IAdminUserService
     {
         private readonly IAdminUserRepository _adminUserRepository;
+        private readonly IAdminUserGroupRepository _userGroupRepository;
+        private readonly IActivityGroupRepository _activityGroupRepository;
 
-        public AdminUserService(IAdminUserRepository adminUserRepository)
+        public AdminUserService(
+            IAdminUserRepository adminUserRepository,
+            IAdminUserGroupRepository userGroupRepository,
+            IActivityGroupRepository activityGroupRepository)
         {
             _adminUserRepository = adminUserRepository;
+            _userGroupRepository = userGroupRepository;
+            _activityGroupRepository = activityGroupRepository;
         }
 
         /// <inheritdoc/>
@@ -36,11 +43,17 @@ namespace EmployeeVoting.Api.Application.Services
             var page = Math.Max(1, query.Page);
             var pageSize = Math.Clamp(query.PageSize, 1, 100);
 
-            var items = all
+            var paged = all
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .Select(ToResponse)
                 .ToList();
+
+            var items = new List<AdminUserResponse>();
+            foreach (var u in paged)
+            {
+                var resp = await ToResponseWithGroupsAsync(u);
+                items.Add(resp);
+            }
 
             return new PagedResult<AdminUserResponse>
             {
@@ -55,7 +68,7 @@ namespace EmployeeVoting.Api.Application.Services
         public async Task<AdminUserResponse?> GetByIdAsync(Guid id)
         {
             var user = await _adminUserRepository.GetByIdAsync(id);
-            return user == null ? null : ToResponse(user);
+            return user == null ? null : await ToResponseWithGroupsAsync(user);
         }
 
         /// <inheritdoc/>
@@ -159,5 +172,29 @@ namespace EmployeeVoting.Api.Application.Services
             CreatedAt = u.CreatedAt,
             UpdatedAt = u.UpdatedAt
         };
+
+        private async Task<AdminUserResponse> ToResponseWithGroupsAsync(AdminUser u)
+        {
+            var resp = ToResponse(u);
+            var userGroups = await _userGroupRepository.GetByAdminUserIdAsync(u.Id);
+            var groups = new List<ActivityGroupResponse>();
+            foreach (var ug in userGroups)
+            {
+                var g = await _activityGroupRepository.GetByIdAsync(ug.ActivityGroupId);
+                if (g != null)
+                {
+                    groups.Add(new ActivityGroupResponse
+                    {
+                        Id = g.Id,
+                        Name = g.Name,
+                        Description = g.Description,
+                        CreatedAt = g.CreatedAt,
+                        CreatedBy = g.CreatedBy
+                    });
+                }
+            }
+            resp.Groups = groups;
+            return resp;
+        }
     }
 }

@@ -12,6 +12,8 @@ namespace EmployeeVoting.Api.Dtos.Admin
         public DateTime EndTime { get; set; }
         public string Status { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
+        public Guid? ActivityGroupId { get; set; }
+        public string? ActivityGroupName { get; set; }
     }
 
     /// <summary>
@@ -146,6 +148,8 @@ namespace EmployeeVoting.Api.Dtos.Admin
         public bool IsResultViewable { get; set; }
         public DateTime? ResultViewStartTime { get; set; }
         public DateTime? ResultViewEndTime { get; set; }
+        public Guid? ActivityGroupId { get; set; }
+        public string? ActivityGroupName { get; set; }
 
         /// <summary>
         /// 候選人列表

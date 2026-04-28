@@ -33,11 +33,14 @@ builder.Services.AddScoped<IVoteActivityRepository, VoteActivityRepository>();
 builder.Services.AddScoped<ICandidateRepository, CandidateRepository>();
 builder.Services.AddScoped<IEligibleVoterRepository, EligibleVoterRepository>();
 builder.Services.AddScoped<IVoteRecordRepository, VoteRecordRepository>();
+builder.Services.AddScoped<IActivityGroupRepository, ActivityGroupRepository>();
+builder.Services.AddScoped<IAdminUserGroupRepository, AdminUserGroupRepository>();
 
 // 註冊 Application Services
 builder.Services.AddScoped<ICaptchaService, CaptchaService>();
 builder.Services.AddScoped<IAdminAuthService, AdminAuthService>();
 builder.Services.AddScoped<IAdminUserService, AdminUserService>();
+builder.Services.AddScoped<IActivityGroupService, ActivityGroupService>();
 builder.Services.AddScoped<IEmployeeVoteService, EmployeeVoteService>();
 builder.Services.AddScoped<IEmployeeAuthService, EmployeeAuthService>();
 

@@ -25,7 +25,7 @@ namespace EmployeeVoting.Api.Infrastructure.Persistence.Repositories
             const string sql = @"
                 SELECT Id, Name, Description, StartTime, EndTime, 
                        CreatedAt, CreatedBy, IsDeleted,
-                       IsResultViewable, ResultViewStartTime, ResultViewEndTime
+                       IsResultViewable, ResultViewStartTime, ResultViewEndTime, ActivityGroupId
                 FROM VoteActivity 
                 WHERE Id = @Id";
             
@@ -41,7 +41,7 @@ namespace EmployeeVoting.Api.Infrastructure.Persistence.Repositories
             var sql = @"
                 SELECT Id, Name, Description, StartTime, EndTime, 
                        CreatedAt, CreatedBy, IsDeleted,
-                       IsResultViewable, ResultViewStartTime, ResultViewEndTime
+                       IsResultViewable, ResultViewStartTime, ResultViewEndTime, ActivityGroupId
                 FROM VoteActivity";
             
             if (!includeDeleted)
@@ -62,7 +62,7 @@ namespace EmployeeVoting.Api.Infrastructure.Persistence.Repositories
             const string sql = @"
                 SELECT Id, Name, Description, StartTime, EndTime, 
                        CreatedAt, CreatedBy, IsDeleted,
-                       IsResultViewable, ResultViewStartTime, ResultViewEndTime
+                       IsResultViewable, ResultViewStartTime, ResultViewEndTime, ActivityGroupId
                 FROM VoteActivity 
                 WHERE IsDeleted = 0 
                   AND datetime('now','localtime') >= datetime(StartTime) 
@@ -80,10 +80,10 @@ namespace EmployeeVoting.Api.Infrastructure.Persistence.Repositories
             const string sql = @"
                 INSERT INTO VoteActivity 
                     (Id, Name, Description, StartTime, EndTime, CreatedAt, CreatedBy, IsDeleted,
-                     IsResultViewable, ResultViewStartTime, ResultViewEndTime)
+                     IsResultViewable, ResultViewStartTime, ResultViewEndTime, ActivityGroupId)
                 VALUES 
                     (@Id, @Name, @Description, @StartTime, @EndTime, @CreatedAt, @CreatedBy, @IsDeleted,
-                     @IsResultViewable, @ResultViewStartTime, @ResultViewEndTime)";
+                     @IsResultViewable, @ResultViewStartTime, @ResultViewEndTime, @ActivityGroupId)";
             
             await connection.ExecuteAsync(sql, activity);
             
@@ -123,7 +123,7 @@ namespace EmployeeVoting.Api.Infrastructure.Persistence.Repositories
         }
 
         /// <inheritdoc/>
-        public async Task<(IEnumerable<VoteActivity> Items, int TotalCount)> GetPagedAsync(ActivityQueryRequest query)
+        public async Task<(IEnumerable<VoteActivity> Items, int TotalCount)> GetPagedAsync(ActivityQueryRequest query, IEnumerable<Guid>? groupFilter = null)
         {
             using var connection = _connectionFactory.CreateConnection();
 
@@ -153,14 +153,32 @@ namespace EmployeeVoting.Api.Infrastructure.Persistence.Repositories
 
             var keywordWhere = string.IsNullOrEmpty(keyword) ? "" : "AND Name LIKE @Keyword";
 
-            var baseWhere = $"WHERE IsDeleted = 0 {statusWhere} {keywordWhere}";
+            // 分區過濾（admin 只能看自己分區的活動）
+            var groupFilterList = groupFilter?.ToList();
+            string groupWhere;
+            if (groupFilterList != null)
+            {
+                if (groupFilterList.Count == 0)
+                {
+                    // 沒有任何分區，回傳空結果
+                    return (Enumerable.Empty<VoteActivity>(), 0);
+                }
+                var inClause = string.Join(",", groupFilterList.Select(g => $"'{g}'"));
+                groupWhere = $"AND ActivityGroupId IN ({inClause})";
+            }
+            else
+            {
+                groupWhere = "";
+            }
+
+            var baseWhere = $"WHERE IsDeleted = 0 {statusWhere} {keywordWhere} {groupWhere}";
 
             var countSql = $"SELECT COUNT(1) FROM VoteActivity {baseWhere}";
 
             var dataSql = $@"
                 SELECT Id, Name, Description, StartTime, EndTime,
                        CreatedAt, CreatedBy, IsDeleted,
-                       IsResultViewable, ResultViewStartTime, ResultViewEndTime
+                       IsResultViewable, ResultViewStartTime, ResultViewEndTime, ActivityGroupId
                 FROM VoteActivity
                 {baseWhere}
                 ORDER BY {sortCol} {sortDir}

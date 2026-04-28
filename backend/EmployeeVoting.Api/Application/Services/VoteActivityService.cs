@@ -15,38 +15,56 @@ namespace EmployeeVoting.Api.Application.Services
         private readonly ICandidateRepository _candidateRepository;
         private readonly IEligibleVoterRepository _eligibleVoterRepository;
         private readonly IVoteRecordRepository _voteRecordRepository;
+        private readonly IActivityGroupRepository _activityGroupRepository;
 
         public VoteActivityService(
             IVoteActivityRepository voteActivityRepository,
             ICandidateRepository candidateRepository,
             IEligibleVoterRepository eligibleVoterRepository,
-            IVoteRecordRepository voteRecordRepository)
+            IVoteRecordRepository voteRecordRepository,
+            IActivityGroupRepository activityGroupRepository)
         {
             _voteActivityRepository = voteActivityRepository;
             _candidateRepository = candidateRepository;
             _eligibleVoterRepository = eligibleVoterRepository;
             _voteRecordRepository = voteRecordRepository;
+            _activityGroupRepository = activityGroupRepository;
         }
 
         /// <inheritdoc/>
-        public async Task<PagedResult<VoteActivityListItem>> GetActivitiesAsync(ActivityQueryRequest query)
+        public async Task<PagedResult<VoteActivityListItem>> GetActivitiesAsync(ActivityQueryRequest query, Guid? adminUserId = null, string adminRole = "admin")
         {
-            var (items, total) = await _voteActivityRepository.GetPagedAsync(query);
+            IEnumerable<Guid>? groupFilter = null;
+
+            // admin 角色：限制只能看自己分區的活動
+            if (adminRole != UserRoles.SuperAdmin && adminUserId.HasValue)
+            {
+                var groupIds = await _activityGroupRepository.GetGroupIdsByAdminUserIdAsync(adminUserId.Value);
+                groupFilter = groupIds.ToList();
+            }
+
+            var (items, total) = await _voteActivityRepository.GetPagedAsync(query, groupFilter);
 
             var page     = Math.Max(1, query.Page);
             var pageSize = Math.Clamp(query.PageSize, 1, 100);
+
+            // 載入分區名稱
+            var allGroups = await _activityGroupRepository.GetAllAsync();
+            var groupDict = allGroups.ToDictionary(g => g.Id, g => g.Name);
 
             return new PagedResult<VoteActivityListItem>
             {
                 Items = items.Select(a => new VoteActivityListItem
                 {
-                    Id          = a.Id,
-                    Name        = a.Name,
-                    Description = a.Description,
-                    StartTime   = a.StartTime,
-                    EndTime     = a.EndTime,
-                    Status      = GetActivityStatus(a.StartTime, a.EndTime),
-                    CreatedAt   = a.CreatedAt
+                    Id                = a.Id,
+                    Name              = a.Name,
+                    Description       = a.Description,
+                    StartTime         = a.StartTime,
+                    EndTime           = a.EndTime,
+                    Status            = GetActivityStatus(a.StartTime, a.EndTime),
+                    CreatedAt         = a.CreatedAt,
+                    ActivityGroupId   = a.ActivityGroupId,
+                    ActivityGroupName = a.ActivityGroupId.HasValue && groupDict.TryGetValue(a.ActivityGroupId.Value, out var gName) ? gName : null
                 }),
                 TotalCount = total,
                 Page       = page,
@@ -82,6 +100,13 @@ namespace EmployeeVoting.Api.Application.Services
             }
 
             var response = MapToDetailResponse(activity);
+
+            // 查詢分區名稱
+            if (activity.ActivityGroupId.HasValue)
+            {
+                var group = await _activityGroupRepository.GetByIdAsync(activity.ActivityGroupId.Value);
+                response.ActivityGroupName = group?.Name;
+            }
 
             // 載入候選人（含得票數）
             var candidates = await _candidateRepository.GetByActivityIdAsync(id);
@@ -119,7 +144,7 @@ namespace EmployeeVoting.Api.Application.Services
         }
 
         /// <inheritdoc/>
-        public async Task<VoteActivityDetailResponse> CreateActivityAsync(CreateVoteActivityRequest request, string createdBy)
+        public async Task<VoteActivityDetailResponse> CreateActivityAsync(CreateVoteActivityRequest request, string createdBy, Guid? adminUserId = null, string adminRole = "admin")
         {
             ValidateActivityRequest(request.ActivityName, request.StartTime, request.EndTime, request.IsResultViewable,request.ResultViewStartTime,request.ResultViewEndTime);
 
@@ -139,6 +164,13 @@ namespace EmployeeVoting.Api.Application.Services
                 CreatedBy = createdBy,
                 IsDeleted = false
             };
+
+            // admin 角色建立活動：自動歸入其第一個分區
+            if (adminRole != UserRoles.SuperAdmin && adminUserId.HasValue)
+            {
+                var groupIds = await _activityGroupRepository.GetGroupIdsByAdminUserIdAsync(adminUserId.Value);
+                activity.ActivityGroupId = groupIds.FirstOrDefault();
+            }
 
             await _voteActivityRepository.CreateAsync(activity);
 
@@ -301,7 +333,7 @@ namespace EmployeeVoting.Api.Application.Services
             return "已結束";
         }
 
-        private static VoteActivityDetailResponse MapToDetailResponse(VoteActivity activity)
+        private static VoteActivityDetailResponse MapToDetailResponse(VoteActivity activity, string? groupName = null)
         {
             return new VoteActivityDetailResponse
             {
@@ -315,7 +347,9 @@ namespace EmployeeVoting.Api.Application.Services
                 CreatedBy = activity.CreatedBy,
                 IsResultViewable = activity.IsResultViewable,
                 ResultViewStartTime = activity.ResultViewStartTime,
-                ResultViewEndTime = activity.ResultViewEndTime
+                ResultViewEndTime = activity.ResultViewEndTime,
+                ActivityGroupId = activity.ActivityGroupId,
+                ActivityGroupName = groupName
             };
         }
     }

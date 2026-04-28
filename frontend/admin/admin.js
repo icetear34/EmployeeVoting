@@ -11,22 +11,15 @@ const AdminUtil = {
    * @returns {Promise<object|null>} 管理員資料或 null
    */
   async checkAuth() {
-    const session = CookieUtil.get('admin_session');
-    if (!session) {
-      return null;
-    }
-
     try {
       const response = await ApiUtil.get('/admin-auth/me');
       sessionStorage.setItem('admin_data', JSON.stringify(response));
       return response;
     } catch (error) {
       if (error.status === 401) {
-        CookieUtil.remove('admin_session');
         sessionStorage.removeItem('admin_data');
         return null;
       }
-      // 若網路問題，嘗試使用快取
       const cached = sessionStorage.getItem('admin_data');
       return cached ? JSON.parse(cached) : null;
     }
@@ -45,7 +38,7 @@ const AdminUtil = {
    * 清除管理員登入資料
    */
   clearAuth() {
-    CookieUtil.remove('admin_session');
+    CookieUtil.remove('admin_logged_in');
     sessionStorage.removeItem('admin_data');
   },
 
@@ -72,10 +65,7 @@ const AdminUtil = {
       captchaCode
     });
 
-    if (response.token) {
-      CookieUtil.set('admin_session', response.token, 1);
-    }
-
+    // 後端已設 HttpOnly Cookie，不需前端手動存 token
     if (response.admin) {
       sessionStorage.setItem('admin_data', JSON.stringify(response.admin));
     }
@@ -150,31 +140,75 @@ const ActivityApi = {
   },
 
   /**
-   * 匯入投票人員預覽
-   * @param {File} file 
-   * @returns {Promise<object>}
+   * 下載投票人員 CSV 範本（由後端提供，含工號/名稱/單位/生日）
+   * @returns {Promise<void>}
    */
-  async importVotersPreview(file) {
+  async downloadVoterTemplate() {
+    const response = await fetch(API_BASE_URL + '/admin/activities/voters/template', {
+      method: 'GET',
+      credentials: 'include'
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      let msg = `下載失敗（HTTP ${response.status}）`;
+      try { msg = JSON.parse(text)?.message || msg; } catch { /* ignore */ }
+      throw new Error(msg);
+    }
+
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'voters_template.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  },
+
+  /**
+   * 解析 CSV 投票名單（純解析，不存 DB）
+   * 回傳陣列供前端暫存，儲存活動時一起送出
+   * @param {File} file CSV 檔案
+   * @returns {Promise<Array<{employeeNo, name, department, birthDate}>>}
+   */
+  async importVoters(file) {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await fetch(API_BASE_URL + '/admin/voters/import-preview', {
+    const response = await fetch(API_BASE_URL + '/admin/activities/voters/parse', {
       method: 'POST',
-      headers: {
-        'Authorization': 'Bearer ' + CookieUtil.get('admin_session')
-      },
+      credentials: 'include',
       body: formData
     });
 
-    const result = await response.json();
+    // 先確認有 body 再 parse JSON，避免空回應 crash
+    let result;
+    const contentType = response.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      result = await response.json();
+    } else {
+      const text = await response.text();
+      if (text) {
+        try { result = JSON.parse(text); } catch { result = null; }
+      }
+    }
 
     if (!response.ok) {
-      const error = new Error(result.message || '匯入失敗');
+      const msg = result?.message || `請求失敗（HTTP ${response.status}）`;
+      const error = new Error(msg);
       error.status = response.status;
       throw error;
     }
 
-    return result;
+    // 後端回傳 PascalCase，統一轉成 camelCase
+    return (Array.isArray(result) ? result : []).map(v => ({
+      employeeNo: v.EmployeeNo || v.employeeNo || '',
+      name:       v.Name       || v.name       || '',
+      department: v.Department || v.department || '',
+      birthDate:  v.BirthDate  || v.birthDate  || ''
+    }));
   }
 };
 
@@ -456,4 +490,44 @@ const ValidationUtil = {
     }
     return { valid: true, message: '' };
   }
+};
+
+
+const AdminPage = {
+    currentUser: null,
+
+    async requireAuth() {
+        try {
+            const me = await ApiUtil.get('/admin-auth/me');
+            AdminPage.currentUser = me;
+            return true;
+        } catch (error) {
+            sessionStorage.removeItem('admin_data');
+            CookieUtil.remove('admin_logged_in');
+            window.location.href = 'login.html';
+            return false;
+        }
+    },
+
+    isSuperAdmin() {
+        return AdminPage.currentUser?.role === 'super_admin';
+    },
+
+    async logout() {
+        try {
+            await ApiUtil.post('/admin-auth/logout', {});
+        } catch (_) {
+        }
+        sessionStorage.removeItem('admin_data');
+        CookieUtil.remove('admin_logged_in');
+        window.location.href = 'login.html';
+    }
+};
+
+function doLogout() {
+    return AdminPage.logout();
+}
+
+window.doLogout = async function doLogout() {
+  await AdminUtil.logout();
 };

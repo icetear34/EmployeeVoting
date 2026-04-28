@@ -26,8 +26,9 @@ namespace EmployeeVoting.Api.Common
     /// </summary>
     public static class UserRoles
     {
-        public const string Employee = "employee";
-        public const string Admin = "admin";
+        public const string Employee   = "employee";
+        public const string Admin      = "admin";
+        public const string SuperAdmin = "super_admin";
     }
 
     /// <summary>
@@ -60,6 +61,7 @@ namespace EmployeeVoting.Api.Common
         public const string SessionExpired = "SESSION_EXPIRED";
         public const string Unauthorized = "UNAUTHORIZED";
         public const string AccountDisabled = "ACCOUNT_DISABLED";
+        public const string Forbidden = "FORBIDDEN";
 
         // 投票相關
         public const string NoEligibleActivity = "NO_ELIGIBLE_ACTIVITY";

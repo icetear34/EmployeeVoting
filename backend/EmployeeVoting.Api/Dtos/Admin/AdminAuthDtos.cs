@@ -61,5 +61,10 @@ namespace EmployeeVoting.Api.Dtos.Admin
         /// 顯示名稱
         /// </summary>
         public string DisplayName { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 角色：admin / super_admin
+        /// </summary>
+        public string Role { get; set; } = "admin";
     }
 }

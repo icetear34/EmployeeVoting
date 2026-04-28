@@ -16,6 +16,8 @@ namespace EmployeeVoting.Api.Domain.Entities
         public bool IsResultViewable { get;  set; }
         public DateTime? ResultViewStartTime { get;  set; }
         public DateTime? ResultViewEndTime { get;  set; }
+        /// <summary>所屬分區 Id（null = 未分區，僅超級管理員可見）</summary>
+        public Guid? ActivityGroupId { get; set; }
     }
 
     /// <summary>
@@ -103,6 +105,30 @@ namespace EmployeeVoting.Api.Domain.Entities
         public string Purpose { get; set; } = string.Empty;
         public DateTime ExpireAt { get; set; }
         public bool IsUsed { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+
+    /// <summary>
+    /// 活動分區實體
+    /// </summary>
+    public class ActivityGroup
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+        public string CreatedBy { get; set; } = string.Empty;
+        public bool IsDeleted { get; set; }
+    }
+
+    /// <summary>
+    /// 管理員-分區關聯實體
+    /// </summary>
+    public class AdminUserGroup
+    {
+        public Guid Id { get; set; }
+        public Guid AdminUserId { get; set; }
+        public Guid ActivityGroupId { get; set; }
         public DateTime CreatedAt { get; set; }
     }
 }

@@ -17,6 +17,7 @@
     <div class="nav-switch">
       <a href="activities.html" class="nav-switch-item">活動管理</a>
       <a href="users.html" class="nav-switch-item active">帳號管理</a>
+      <a href="groups.html" class="nav-switch-item" id="nav-groups" style="display:none">分區管理</a>
     </div>
     <button class="topbar-action" onclick="doLogout()">登出</button>
   </nav>
@@ -176,6 +177,9 @@
   document.addEventListener('DOMContentLoaded', async () => {
     const ok = await AdminPage.requireAuth();
     if (!ok) return;
+    if (AdminPage.isSuperAdmin()) {
+      document.getElementById('nav-groups').style.display = '';
+    }
     await loadUsers();
   });
 

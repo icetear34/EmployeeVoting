@@ -54,7 +54,7 @@ namespace EmployeeVoting.Api.Controllers
                 PageSize = pageSize
             };
 
-            var result = await _voteActivityService.GetActivitiesAsync(query);
+            var result = await _voteActivityService.GetActivitiesAsync(query, CurrentSession?.AdminUserId, CurrentSession?.Role ?? "admin");
             return Ok(result);
         }
 
@@ -101,7 +101,7 @@ namespace EmployeeVoting.Api.Controllers
                     }
                 }
 
-                var activity = await _voteActivityService.CreateActivityAsync(request, createdBy);
+                var activity = await _voteActivityService.CreateActivityAsync(request, createdBy, CurrentSession?.AdminUserId, CurrentSession?.Role ?? "admin");
                 
                 return CreatedAtAction(
                     nameof(GetActivity), 
